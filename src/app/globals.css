@@ -3917,3 +3917,27 @@ tbody tr:last-child th {
 .auth-card .brand-mark {
   width: fit-content;
 }
+.password-field {
+  position: relative;
+}
+.password-field input {
+  padding-right: 46px !important;
+}
+.password-field button {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  color: var(--muted-foreground);
+}
+.profile-name {
+  display: block;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

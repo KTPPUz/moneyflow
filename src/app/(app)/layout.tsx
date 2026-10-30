@@ -5,10 +5,11 @@ import { currentUser } from "@/lib/auth";
 export default async function AppLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  if (!(await currentUser())) redirect("/login");
+  const user = await currentUser();
+  if (!user) redirect("/login");
   return (
     <Providers>
-      <AppShell>{children}</AppShell>
+      <AppShell userName={user.name}>{children}</AppShell>
     </Providers>
   );
 }

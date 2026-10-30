@@ -488,3 +488,33 @@ test("housing expense 4400 saves from dashboard with personal cash account", asy
     date: "2026-10-30",
   });
 });
+
+test("sign-up form checks the password confirmation and shows the display name", async ({
+  browser,
+}, info) => {
+  test.skip(!["desktop", "mobile"].includes(info.project.name));
+  const context = await browser.newContext({
+    baseURL: ORIGIN,
+    viewport: { width: 1440, height: 1000 },
+  });
+  const page = await context.newPage();
+  await page.goto("/login");
+  await page.getByRole("button", { name: "ยังไม่มีบัญชี? สร้างบัญชี" }).click();
+  await page.getByLabel("ชื่อที่แสดง").fill("  สมชาย  ");
+  await page.getByLabel("อีเมล").fill(`e2e-${randomUUID()}@example.com`);
+  const password = page.getByLabel("รหัสผ่าน", { exact: true });
+  await password.fill("e2e-password-123");
+  await page.getByLabel("ยืนยันรหัสผ่าน").fill("e2e-password-999");
+  await expect(password).toHaveAttribute("type", "password");
+  await page.getByRole("button", { name: "แสดงรหัสผ่าน" }).click();
+  await expect(password).toHaveAttribute("type", "text");
+  await page.getByRole("button", { name: "สร้างบัญชี", exact: true }).click();
+  await expect(page.locator(".field-error")).toContainText("ไม่ตรงกัน");
+  await expect(page).toHaveURL(/\/login$/);
+  await page.getByLabel("ยืนยันรหัสผ่าน").fill("e2e-password-123");
+  await page.getByRole("button", { name: "สร้างบัญชี", exact: true }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page.locator(".profile-name")).toHaveText("สมชาย");
+  await expect(page.locator(".avatar")).toHaveText("ส");
+  await context.close();
+});

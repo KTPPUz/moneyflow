@@ -50,7 +50,13 @@ export function Brand() {
     </Link>
   );
 }
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  children,
+  userName,
+}: {
+  children: React.ReactNode;
+  userName: string;
+}) {
   const pathname = usePathname(),
     router = useRouter();
   const { setEditor, notice, clearNotice } = useFinance();
@@ -192,9 +198,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <span className="topbar-divider" />
             <Link className="profile" href="/settings">
-              <span className="avatar">ฉ</span>
+              <span className="avatar">{Array.from(userName)[0]}</span>
               <span>
-                พื้นที่ของฉัน<small>บัญชีส่วนบุคคล</small>
+                <span className="profile-name">{userName}</span>
+                <small>บัญชีส่วนบุคคล</small>
               </span>
               <ChevronDown size={14} />
             </Link>
