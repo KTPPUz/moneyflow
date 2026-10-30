@@ -25,5 +25,7 @@ export function databaseConfig(url: string): PoolConfig {
     connectionLimit: 3,
     minimumIdle: 0,
     idleTimeout: 30,
+    // The driver default of 1s is shorter than a TLS handshake to a cloud database.
+    connectTimeout: 10000,
   };
 }

@@ -24,6 +24,7 @@ test("database url maps TLS and encoded credentials to the driver", () => {
   assert.equal(cloud.database, "money");
   assert.deepEqual(cloud.ssl, { rejectUnauthorized: true });
   assert.equal(cloud.allowPublicKeyRetrieval, false);
+  assert.ok(cloud.connectTimeout! >= 5000);
   const local = databaseConfig("mysql://root@127.0.0.1:3399/money");
   assert.equal(local.ssl, false);
   assert.equal(local.allowPublicKeyRetrieval, true);
