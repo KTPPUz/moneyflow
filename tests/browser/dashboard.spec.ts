@@ -518,3 +518,14 @@ test("sign-up form checks the password confirmation and shows the display name",
   await expect(page.locator(".avatar")).toHaveText("ส");
   await context.close();
 });
+
+test("profile menu signs out and ends the session", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop");
+  await page.goto("/dashboard");
+  await page.getByRole("button", { name: /^เมนูบัญชี/ }).click();
+  await page.getByRole("button", { name: "ออกจากระบบ" }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await page.goto("/dashboard");
+  await expect(page).toHaveURL(/\/login$/);
+  expect((await page.request.get("/api/finance")).status()).toBe(401);
+});

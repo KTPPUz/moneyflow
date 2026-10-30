@@ -13,6 +13,7 @@ import {
   Grid2X2,
   House,
   Leaf,
+  LogOut,
   Moon,
   Plus,
   Search,
@@ -24,6 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { useFinance } from "@/components/providers";
+import { signOutToLogin } from "@/lib/auth-client";
 import { useTheme } from "@/lib/use-theme";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/dialog";
@@ -59,11 +61,12 @@ export function AppShell({
 }) {
   const pathname = usePathname(),
     router = useRouter();
-  const { setEditor, notice, clearNotice } = useFinance();
+  const { setEditor, notice, notify, clearNotice } = useFinance();
   const { dark, toggleTheme } = useTheme();
   const [more, setMore] = useState(false),
     [help, setHelp] = useState(false),
-    [bell, setBell] = useState(false);
+    [bell, setBell] = useState(false),
+    [profile, setProfile] = useState(false);
   const current =
     routes.find(
       (r) =>
@@ -81,7 +84,10 @@ export function AppShell({
             ?.focus(),
         );
       }
-      if (e.key === "Escape") setBell(false);
+      if (e.key === "Escape") {
+        setBell(false);
+        setProfile(false);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -178,7 +184,10 @@ export function AppShell({
                 size="icon"
                 aria-label="การแจ้งเตือน"
                 aria-expanded={bell}
-                onClick={() => setBell(!bell)}
+                onClick={() => {
+                  setBell(!bell);
+                  setProfile(false);
+                }}
               >
                 <Bell size={19} />
                 <i className="notification-dot" />
@@ -197,14 +206,41 @@ export function AppShell({
               )}
             </div>
             <span className="topbar-divider" />
-            <Link className="profile" href="/settings">
-              <span className="avatar">{Array.from(userName)[0]}</span>
-              <span>
-                <span className="profile-name">{userName}</span>
-                <small>บัญชีส่วนบุคคล</small>
-              </span>
-              <ChevronDown size={14} />
-            </Link>
+            <div className="notification-wrap">
+              <button
+                className="profile"
+                aria-label={`เมนูบัญชี ${userName}`}
+                aria-expanded={profile}
+                onClick={() => {
+                  setProfile(!profile);
+                  setBell(false);
+                }}
+              >
+                <span className="avatar">{Array.from(userName)[0]}</span>
+                <span>
+                  <span className="profile-name">{userName}</span>
+                  <small>บัญชีส่วนบุคคล</small>
+                </span>
+                <ChevronDown size={14} />
+              </button>
+              {profile && (
+                <div className="notification-popover profile-menu">
+                  <Link href="/settings" onClick={() => setProfile(false)}>
+                    <Settings2 size={16} />
+                    ตั้งค่า
+                  </Link>
+                  <button
+                    onClick={async () => {
+                      if (!(await signOutToLogin()))
+                        notify("ออกจากระบบไม่สำเร็จ กรุณาลองอีกครั้ง", "error");
+                    }}
+                  >
+                    <LogOut size={16} />
+                    ออกจากระบบ
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
         <main id="main-content">

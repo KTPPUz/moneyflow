@@ -2,13 +2,13 @@
 import { useState } from "react";
 import { Database, Info, LogOut, RotateCcw, ShieldCheck } from "lucide-react";
 import { useFinance } from "@/components/providers";
-import { authClient } from "@/lib/auth-client";
+import { signOutToLogin } from "@/lib/auth-client";
 import { PageHeading } from "@/components/shared/page-heading";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/dialog";
 export function SettingsScreen() {
-  const { data, reset } = useFinance();
+  const { data, reset, notify } = useFinance();
   const [confirm, setConfirm] = useState(false),
     [pending, setPending] = useState(false);
   return (
@@ -32,8 +32,8 @@ export function SettingsScreen() {
           <Button
             variant="outline"
             onClick={async () => {
-              await authClient.signOut();
-              window.location.assign("/login");
+              if (!(await signOutToLogin()))
+                notify("ออกจากระบบไม่สำเร็จ กรุณาลองอีกครั้ง", "error");
             }}
           >
             <LogOut size={16} />

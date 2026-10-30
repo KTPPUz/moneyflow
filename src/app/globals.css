@@ -3941,3 +3941,30 @@ tbody tr:last-child th {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.profile {
+  text-align: left;
+}
+.profile-menu {
+  display: grid;
+  gap: 2px;
+  width: 180px;
+  padding: 8px;
+}
+.profile-menu a,
+.profile-menu button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 40px;
+  margin: 0;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 500;
+}
+.profile-menu a:hover,
+.profile-menu button:hover {
+  background: var(--muted);
+}
