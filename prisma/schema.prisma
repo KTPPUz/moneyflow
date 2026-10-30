@@ -1,0 +1,203 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// Better Auth tables
+model User {
+  id            String    @id @db.VarChar(64)
+  name          String    @db.VarChar(120)
+  email         String    @unique @db.VarChar(191)
+  emailVerified Boolean   @default(false)
+  image         String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+
+  financeState     FinanceState?
+  financeAccounts  FinanceAccount[]
+  categories       Category[]
+  transactions     Transaction[]
+  budgets          Budget[]
+  transfers        Transfer[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @db.VarChar(64)
+  userId    String   @db.VarChar(64)
+  token     String   @unique @db.VarChar(191)
+  expiresAt DateTime
+  ipAddress String?  @db.VarChar(64)
+  userAgent String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id @db.VarChar(64)
+  userId                String    @db.VarChar(64)
+  accountId             String    @db.VarChar(191)
+  providerId            String    @db.VarChar(64)
+  accessToken           String?   @db.Text
+  refreshToken          String?   @db.Text
+  idToken               String?   @db.Text
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?   @db.Text
+  password              String?   @db.Text
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("auth_accounts")
+}
+
+model Verification {
+  id         String   @id @db.VarChar(64)
+  identifier String   @db.VarChar(191)
+  value      String   @db.Text
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verifications")
+}
+
+model RateLimit {
+  id          String @id @db.VarChar(64)
+  key         String @unique @db.VarChar(191)
+  count       Int
+  lastRequest BigInt
+
+  @@map("rate_limits")
+}
+
+// Finance tables. Client-generated ids are only unique per user (default
+// categories share ids such as "food"), so every key includes userId and
+// composite foreign keys keep references inside one user's data.
+model FinanceState {
+  userId    String   @id @db.VarChar(64)
+  revision  Int      @default(0)
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("finance_states")
+}
+
+model FinanceAccount {
+  userId         String  @db.VarChar(64)
+  id             String  @db.VarChar(64)
+  name           String  @db.VarChar(120)
+  type           String  @db.VarChar(16)
+  openingBalance Decimal @db.Decimal(15, 2)
+  // The first account is the transaction form's default, so order must survive.
+  position       Int
+  user           User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  transactions Transaction[]
+  transfersOut Transfer[]    @relation("TransferSource")
+  transfersIn  Transfer[]    @relation("TransferDestination")
+
+  @@id([userId, id])
+  @@map("finance_accounts")
+}
+
+model Category {
+  userId     String  @db.VarChar(64)
+  id         String  @db.VarChar(64)
+  name       String  @db.VarChar(60)
+  kind       String  @db.VarChar(16)
+  isFood     Boolean
+  icon       String  @db.VarChar(64)
+  color      String  @db.Char(7)
+  parentId   String? @db.VarChar(64)
+  archivedAt String? @db.VarChar(40)
+  sortOrder  Int
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  parent       Category?     @relation("CategoryTree", fields: [userId, parentId], references: [userId, id], onDelete: NoAction, onUpdate: NoAction)
+  children     Category[]    @relation("CategoryTree")
+  transactions Transaction[]
+  budgets      Budget[]
+
+  @@id([userId, id])
+  @@index([userId, parentId])
+  @@map("categories")
+}
+
+model Transaction {
+  userId          String   @db.VarChar(64)
+  id              String   @db.VarChar(64)
+  kind            String   @db.VarChar(16)
+  amount          Decimal  @db.Decimal(15, 2)
+  transactionDate DateTime @db.Date
+  categoryId      String   @db.VarChar(64)
+  accountId       String   @db.VarChar(64)
+  description     String   @db.VarChar(200)
+  notes           String?  @db.Text
+  tags            Json?
+  refundOf        String?  @db.VarChar(64)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  category Category       @relation(fields: [userId, categoryId], references: [userId, id], onDelete: Restrict)
+  account  FinanceAccount @relation(fields: [userId, accountId], references: [userId, id], onDelete: Restrict)
+  original Transaction?   @relation("Refunds", fields: [userId, refundOf], references: [userId, id], onDelete: NoAction, onUpdate: NoAction)
+  refunds  Transaction[]  @relation("Refunds")
+
+  @@id([userId, id])
+  @@index([userId, transactionDate])
+  @@index([userId, categoryId])
+  @@index([userId, accountId])
+  @@index([userId, refundOf])
+  @@map("transactions")
+}
+
+model Budget {
+  userId     String  @db.VarChar(64)
+  id         String  @db.VarChar(64)
+  month      String  @db.Char(7)
+  categoryId String? @db.VarChar(64)
+  // categoryId with "" for the overall budget: MySQL unique indexes ignore NULLs.
+  scopeKey   String  @db.VarChar(64)
+  amount     Decimal @db.Decimal(15, 2)
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  category Category? @relation(fields: [userId, categoryId], references: [userId, id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([userId, id])
+  @@unique([userId, month, scopeKey])
+  @@index([userId, categoryId])
+  @@map("budgets")
+}
+
+model Transfer {
+  userId               String   @db.VarChar(64)
+  id                   String   @db.VarChar(64)
+  sourceAccountId      String   @db.VarChar(64)
+  destinationAccountId String   @db.VarChar(64)
+  amount               Decimal  @db.Decimal(15, 2)
+  transferDate         DateTime @db.Date
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  source      FinanceAccount @relation("TransferSource", fields: [userId, sourceAccountId], references: [userId, id], onDelete: Restrict)
+  destination FinanceAccount @relation("TransferDestination", fields: [userId, destinationAccountId], references: [userId, id], onDelete: Restrict)
+
+  @@id([userId, id])
+  @@index([userId, transferDate])
+  @@index([userId, sourceAccountId])
+  @@index([userId, destinationAccountId])
+  @@map("transfers")
+}
