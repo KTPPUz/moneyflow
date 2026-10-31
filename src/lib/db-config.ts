@@ -1,7 +1,17 @@
 import type { PoolConfig } from "mariadb";
+// Keep Prisma migrations and the runtime driver aligned on TiDB TLS requirements.
+export function prismaDatabaseUrl(url: string): string {
+  if (!url) return url;
+  const parsed = new URL(url);
+  if (parsed.hostname.toLowerCase().endsWith(".tidbcloud.com")) {
+    parsed.searchParams.set("sslaccept", "strict");
+    return parsed.toString();
+  }
+  return url;
+}
 // One DATABASE_URL serves Prisma Migrate and the runtime driver, which name TLS options differently.
 export function databaseConfig(url: string): PoolConfig {
-  const parsed = new URL(url);
+  const parsed = new URL(prismaDatabaseUrl(url));
   if (parsed.protocol !== "mysql:")
     throw new Error("DATABASE_URL must start with mysql://");
   const tls = ["strict", "accept_invalid_certs"].includes(
@@ -15,8 +25,7 @@ export function databaseConfig(url: string): PoolConfig {
     database: parsed.pathname.slice(1),
     ssl: tls
       ? {
-          rejectUnauthorized:
-            parsed.searchParams.get("sslaccept") === "strict",
+          rejectUnauthorized: parsed.searchParams.get("sslaccept") === "strict",
         }
       : false,
     // Without TLS, MySQL 8 caching_sha2_password needs the server key (local development).

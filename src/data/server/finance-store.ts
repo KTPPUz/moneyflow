@@ -261,26 +261,36 @@ export function assertColumnLimits(data: FinanceData) {
   )
     throw new ColumnLimitError("ข้อมูลบางช่องยาวเกินกว่าที่บันทึกได้");
 }
-export async function readFinance(userId: string): Promise<StoredFinance> {
-  const state = await prisma.financeState.findUnique({ where: { userId } });
-  if (!state) {
-    try {
-      return await prisma.$transaction(async (tx) => {
-        await tx.financeState.create({ data: { userId } });
-        const data = ensureDefaultCategories(emptyFinanceData());
-        await persist(tx, userId, emptyFinanceData(), data);
-        return { data: await load(tx, userId), revision: 0 };
-      }, TX_OPTIONS);
-    } catch (error) {
-      // A parallel first request created the state; fall through to reading it.
-      if (
-        !(error instanceof Prisma.PrismaClientKnownRequestError) ||
-        error.code !== "P2002"
-      )
-        throw error;
-    }
+type ReadDatabase = {
+  $transaction<T>(
+    work: (tx: Tx) => Promise<T>,
+    options: typeof TX_OPTIONS,
+  ): Promise<T>;
+};
+export async function readFinance(
+  userId: string,
+  database: ReadDatabase = prisma,
+): Promise<StoredFinance> {
+  try {
+    return await database.$transaction(async (tx) => {
+      // Read the state once, in the same consistent snapshot as its data.
+      const state = await tx.financeState.findUnique({ where: { userId } });
+      if (state)
+        return { data: await load(tx, userId), revision: state.revision };
+      await tx.financeState.create({ data: { userId } });
+      const data = ensureDefaultCategories(emptyFinanceData());
+      await persist(tx, userId, emptyFinanceData(), data);
+      return { data: await load(tx, userId), revision: 0 };
+    }, TX_OPTIONS);
+  } catch (error) {
+    // A parallel first request created the state; fall through to reading it.
+    if (
+      !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+      error.code !== "P2002"
+    )
+      throw error;
   }
-  return prisma.$transaction(async (tx) => {
+  return database.$transaction(async (tx) => {
     const current = await tx.financeState.findUniqueOrThrow({
       where: { userId },
     });

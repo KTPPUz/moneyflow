@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { databaseConfig } from "../src/lib/db-config";
+import { databaseConfig, prismaDatabaseUrl } from "../src/lib/db-config";
 import { decimalToSatang, MAX_AMOUNT, satangToDecimal } from "../src/lib/money";
 const decimal = (value: string) => ({ toFixed: () => value });
 test("satang converts to DECIMAL(15,2) strings and back without loss", () => {
@@ -29,4 +29,30 @@ test("database url maps TLS and encoded credentials to the driver", () => {
   assert.equal(local.ssl, false);
   assert.equal(local.allowPublicKeyRetrieval, true);
   assert.throws(() => databaseConfig("postgres://x@y/z"));
+});
+test("TiDB Cloud uses certificate-verified TLS without relying on URL flags", () => {
+  for (const suffix of [
+    "",
+    "?sslaccept=strict",
+    "?sslaccept=accept_invalid_certs",
+  ]) {
+    const config = databaseConfig(
+      `mysql://example:placeholder@gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/money${suffix}`,
+    );
+    assert.deepEqual(config.ssl, { rejectUnauthorized: true });
+    assert.equal(config.allowPublicKeyRetrieval, false);
+    assert.equal(
+      new URL(
+        prismaDatabaseUrl(
+          `mysql://example:placeholder@gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/money${suffix}`,
+        ),
+      ).searchParams.get("sslaccept"),
+      "strict",
+    );
+  }
+  const other = databaseConfig(
+    "mysql://example:placeholder@tidbcloud.com.example.org:3306/money",
+  );
+  assert.equal(other.ssl, false);
+  assert.equal(prismaDatabaseUrl(""), "");
 });

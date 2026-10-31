@@ -9,6 +9,7 @@ import {
 } from "@/data/server/finance-store";
 import { currentUser } from "@/lib/auth";
 import { financeSchema } from "@/lib/validation";
+import { RequestTiming } from "@/lib/request-timing";
 const saveSchema = z.object({
   data: financeSchema,
   revision: z.number().int().min(0),
@@ -17,21 +18,44 @@ const fail = (message: string, status: number) =>
   NextResponse.json({ message }, { status });
 function handle(work: (userId: string) => Promise<unknown>) {
   return async () => {
+    const timing = new RequestTiming();
+    const finish = (response: NextResponse) => {
+      response.headers.set("Server-Timing", timing.header());
+      response.headers.set("Cache-Control", "private, no-store");
+      response.headers.set(
+        "X-MoneyFlow-Region",
+        process.env.VERCEL_REGION ?? "local",
+      );
+      if (process.env.MONEYFLOW_LOG_TIMINGS === "true") {
+        console.info("[moneyflow-timing]", {
+          status: response.status,
+          timing: response.headers.get("Server-Timing"),
+          region: process.env.VERCEL_REGION ?? "local",
+        });
+      }
+      return response;
+    };
     try {
-      const user = await currentUser();
-      if (!user) return fail("กรุณาเข้าสู่ระบบ", 401);
-      return NextResponse.json(await work(user.id));
+      const user = await timing.measure("session", () => currentUser());
+      if (!user) return finish(fail("กรุณาเข้าสู่ระบบ", 401));
+      const result = await timing.measure("finance", () => work(user.id));
+      return finish(NextResponse.json(result));
     } catch (error) {
       if (error instanceof RevisionConflictError)
-        return fail("ข้อมูลถูกแก้ไขจากที่อื่น", 409);
+        return finish(fail("ข้อมูลถูกแก้ไขจากที่อื่น", 409));
       if (error instanceof ZodError)
-        return fail(
-          [...new Set(error.issues.map((issue) => issue.message))].join(" · "),
-          400,
+        return finish(
+          fail(
+            [...new Set(error.issues.map((issue) => issue.message))].join(
+              " · ",
+            ),
+            400,
+          ),
         );
-      if (error instanceof ColumnLimitError) return fail(error.message, 400);
+      if (error instanceof ColumnLimitError)
+        return finish(fail(error.message, 400));
       console.error(error);
-      return fail("เชื่อมต่อฐานข้อมูลไม่สำเร็จ กรุณาลองอีกครั้ง", 500);
+      return finish(fail("เชื่อมต่อฐานข้อมูลไม่สำเร็จ กรุณาลองอีกครั้ง", 500));
     }
   };
 }

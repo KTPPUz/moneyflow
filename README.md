@@ -54,6 +54,20 @@ Production build ใช้ Webpack เนื่องจาก Turbopack product
 3. Deploy ได้เลย สคริปต์ `vercel-build` จะรัน `prisma migrate deploy` ให้ตารางตรงกับ [prisma/migrations](prisma/migrations)
 4. สมัครบัญชีของคุณที่ `/login` แล้วตั้ง `AUTH_DISABLE_SIGNUP=true` และ redeploy เพื่อปิดรับสมัครคนอื่น
 
+### TiDB และเวลาโหลด API
+
+โปรเจกต์นี้กำหนด Vercel Function region เป็น Singapore (`sin1`) ใน `vercel.json` ให้ตรงกับฐานข้อมูลที่ใช้อยู่ หากย้ายฐานข้อมูลไป region อื่นให้เปลี่ยนตามด้วย
+
+URL ของ TiDB Cloud จะเปิด TLS และตรวจใบรับรองให้อัตโนมัติทั้ง Prisma migrations และ runtime แม้ไม่ได้ใส่ `sslaccept` ส่วน MySQL cloud provider อื่นให้ตั้ง `sslaccept=strict` ตามคำแนะนำ provider
+
+หลัง deploy ตรวจ `/api/finance` ใน DevTools > Network > Headers:
+
+- `X-MoneyFlow-Region` ระบุ region ที่ Function ทำงานจริง
+- `Server-Timing`: `session` คือเวลาตรวจ session, `finance` คือเวลาโหลด/บันทึกข้อมูลรวม validation และ transaction, `total` คือเวลาที่ API handler ใช้ (หน่วย ms) ไม่รวม cold start ก่อนเริ่ม handlerหรือการเดินทางจากเบราว์เซอร์
+- ตั้ง `MONEYFLOW_LOG_TIMINGS=true` ใน Vercel เพื่อให้ Runtime Logs แสดงเวลาและ region โดยไม่ log ข้อมูลการเงิน
+
+ดูหลักฐานก่อน/หลังและข้อจำกัดการวัดใน [บันทึก TiDB latency](docs/postmortems/tidb-connection-latency.md)
+
 Preview deployment ใช้ `DATABASE_URL` ที่ตั้งให้ environment นั้น และรัน migration กับฐานข้อมูลนั้นด้วย จึงควรแยกฐานข้อมูลของ Preview ออกจาก Production
 
 ในเครื่อง: คัดลอก `.env.example` เป็น `.env`, ใส่ค่าฐานข้อมูล MySQL 8 (ไม่ต้องใช้ `sslaccept` ถ้าเป็น local) แล้วรัน `npm run db:migrate` และ `npm run dev`
