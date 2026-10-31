@@ -21,6 +21,7 @@ import {
 import { localDate } from "@/lib/dates";
 import { saveErrorMessage } from "@/lib/save-error";
 import { LoadingState, ErrorState } from "./shared/states";
+import { PlanningProvider } from "./planning-provider";
 const FINANCE_QUERY_KEY = ["finance"] as const;
 let saveQueue: Promise<unknown> = Promise.resolve();
 type Notice = { message: string; tone: "success" | "error"; undo?: () => void };
@@ -120,6 +121,7 @@ function FinanceProvider({ children }: { children: React.ReactNode }) {
       await client.cancelQueries({ queryKey: FINANCE_QUERY_KEY });
       const data = await remoteRepository.reset();
       client.setQueryData(FINANCE_QUERY_KEY, data);
+      await client.invalidateQueries({ queryKey: ["planning"] });
       notify("ล้างข้อมูลแล้ว พร้อมหมวดหมู่มาตรฐานสำหรับเริ่มใหม่");
       return true;
     } catch (error) {
@@ -168,7 +170,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [client] = useState(() => new QueryClient());
   return (
     <QueryClientProvider client={client}>
-      <FinanceProvider>{children}</FinanceProvider>
+      <FinanceProvider>
+        <PlanningProvider>{children}</PlanningProvider>
+      </FinanceProvider>
     </QueryClientProvider>
   );
 }

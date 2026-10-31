@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { decimalToSatang, satangToDecimal } from "@/lib/money";
 import { ensureDefaultCategories } from "@/data/local/default-categories";
 import { emptyFinanceData } from "@/data/local/initial-data";
+import { clearPlanning } from "./planning-store";
 import type {
   Account,
   Budget,
@@ -321,6 +322,7 @@ export async function resetFinance(userId: string): Promise<StoredFinance> {
       where: { userId },
       data: { revision: { increment: 1 } },
     });
+    await clearPlanning(tx, userId);
     await persist(
       tx,
       userId,

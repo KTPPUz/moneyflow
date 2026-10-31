@@ -9,22 +9,25 @@ datasource db {
 
 // Better Auth tables
 model User {
-  id            String    @id @db.VarChar(64)
-  name          String    @db.VarChar(120)
-  email         String    @unique @db.VarChar(191)
-  emailVerified Boolean   @default(false)
-  image         String?   @db.Text
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id            String         @id @db.VarChar(64)
+  name          String         @db.VarChar(120)
+  email         String         @unique @db.VarChar(191)
+  emailVerified Boolean        @default(false)
+  image         String?        @db.Text
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   sessions      Session[]
   accounts      Account[]
+  planningState PlanningState?
+  savingsGoals  SavingsGoal[]
+  billReminders BillReminder[]
 
-  financeState     FinanceState?
-  financeAccounts  FinanceAccount[]
-  categories       Category[]
-  transactions     Transaction[]
-  budgets          Budget[]
-  transfers        Transfer[]
+  financeState    FinanceState?
+  financeAccounts FinanceAccount[]
+  categories      Category[]
+  transactions    Transaction[]
+  budgets         Budget[]
+  transfers       Transfer[]
 
   @@map("users")
 }
@@ -200,4 +203,55 @@ model Transfer {
   @@index([userId, sourceAccountId])
   @@index([userId, destinationAccountId])
   @@map("transfers")
+}
+
+model PlanningState {
+  userId       String @id @db.VarChar(64)
+  revision     Int    @default(0)
+  readAlertIds Json
+  user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("planning_states")
+}
+
+model SavingsGoal {
+  userId        String             @db.VarChar(64)
+  id            String             @db.VarChar(64)
+  name          String             @db.VarChar(100)
+  target        Decimal            @db.Decimal(15, 2)
+  dueDate       DateTime           @db.Date
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contributions GoalContribution[]
+
+  @@id([userId, id])
+  @@map("savings_goals")
+}
+
+model GoalContribution {
+  userId           String      @db.VarChar(64)
+  id               String      @db.VarChar(64)
+  goalId           String      @db.VarChar(64)
+  amount           Decimal     @db.Decimal(15, 2)
+  contributionDate DateTime    @db.Date
+  note             String      @db.VarChar(200)
+  goal             SavingsGoal @relation(fields: [userId, goalId], references: [userId, id], onDelete: Cascade)
+
+  @@id([userId, id])
+  @@index([userId, goalId])
+  @@map("goal_contributions")
+}
+
+model BillReminder {
+  userId     String    @db.VarChar(64)
+  id         String    @db.VarChar(64)
+  name       String    @db.VarChar(100)
+  amount     Decimal   @db.Decimal(15, 2)
+  dueDate    DateTime  @db.Date
+  remindDays Int       @default(7)
+  paidDate   DateTime? @db.Date
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, id])
+  @@index([userId, dueDate])
+  @@map("bill_reminders")
 }

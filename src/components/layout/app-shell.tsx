@@ -16,6 +16,7 @@ import {
   LogOut,
   Moon,
   Plus,
+  PiggyBank,
   Search,
   Settings2,
   Sparkles,
@@ -30,11 +31,14 @@ import { useTheme } from "@/lib/use-theme";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/dialog";
 import { TransactionEditor } from "@/features/transactions/transaction-editor";
+import { NotificationCenter } from "@/features/reminders/notification-center";
 export const routes = [
   { href: "/dashboard", label: "ภาพรวม", icon: House },
   { href: "/transactions", label: "รายการ", icon: WalletCards },
   { href: "/analytics/food", label: "วิเคราะห์", icon: ChartNoAxesCombined },
   { href: "/budgets", label: "งบประมาณ", icon: Wallet },
+  { href: "/goals", label: "เป้าหมายเงินออม", icon: PiggyBank },
+  { href: "/reminders", label: "แจ้งเตือนและบิล", icon: Bell },
   { href: "/categories", label: "หมวดหมู่", icon: Grid2X2 },
   { href: "/accounts", label: "บัญชี", icon: WalletCards },
   { href: "/settings", label: "ตั้งค่า", icon: Settings2 },
@@ -178,33 +182,14 @@ export function AppShell({
             >
               {dark ? <Sun size={19} /> : <Moon size={19} />}
             </Button>
-            <div className="notification-wrap">
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="การแจ้งเตือน"
-                aria-expanded={bell}
-                onClick={() => {
-                  setBell(!bell);
-                  setProfile(false);
-                }}
-              >
-                <Bell size={19} />
-                <i className="notification-dot" />
-              </Button>
-              {bell && (
-                <div className="notification-popover">
-                  <b>พื้นที่ของคุณ</b>
-                  <p>
-                    ข้อมูลเก็บในฐานข้อมูลภายใต้บัญชีของคุณ
-                    ยังไม่เชื่อมต่อธนาคารหรือบัญชีจริง
-                  </p>
-                  <Link href="/settings" onClick={() => setBell(false)}>
-                    จัดการข้อมูล →
-                  </Link>
-                </div>
-              )}
-            </div>
+            <NotificationCenter
+              open={bell}
+              onClose={() => setBell(false)}
+              onToggle={() => {
+                setBell(!bell);
+                setProfile(false);
+              }}
+            />
             <span className="topbar-divider" />
             <div className="notification-wrap">
               <button
@@ -282,7 +267,7 @@ export function AppShell({
         open={more}
         onOpenChange={setMore}
         title="พื้นที่ของคุณ"
-        description="จัดการหมวดหมู่ บัญชี และการตั้งค่า"
+        description="จัดการเงินออม กำหนดจ่าย หมวดหมู่ บัญชี และการตั้งค่า"
       >
         <div className="more-links">
           {routes.slice(4).map(({ href, label, icon: Icon }) => (
