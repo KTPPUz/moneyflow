@@ -2224,6 +2224,24 @@ tbody tr:last-child th {
   align-items: center;
   justify-content: space-between;
 }
+.account-card-heading {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.account-card-heading > .soft-label {
+  margin-left: auto;
+}
+.account-card-actions {
+  display: flex;
+  gap: 2px;
+  color: var(--muted-foreground);
+}
+.account-card-actions button:last-child {
+  color: var(--negative);
+}
+.account-card h2 {
+  overflow-wrap: anywhere;
+}
 .account-card h2 {
   margin-top: 23px;
   font-size: 15px;

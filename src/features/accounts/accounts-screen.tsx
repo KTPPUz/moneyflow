@@ -1,83 +1,30 @@
 "use client";
 import { useState } from "react";
-import { Info, Plus } from "lucide-react";
+import { Info, Pencil, Plus, Trash2 } from "lucide-react";
 import { useFinance } from "@/components/providers";
 import { PageHeading } from "@/components/shared/page-heading";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { EmptyState } from "@/components/shared/states";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Modal } from "@/components/ui/dialog";
 import { accountBalance } from "@/lib/finance";
-import { formatMoney, parseMoney, sumSatang } from "@/lib/money";
+import { formatMoney, sumSatang } from "@/lib/money";
 import type { Account } from "@/types/finance";
-const labels = {
-  cash: "เงินสด",
-  bank: "บัญชีธนาคาร",
-  ewallet: "e-Wallet",
-  credit: "บัตรเครดิต",
-};
+import { AccountForm, accountLabels } from "./account-form";
+import { DeleteAccountDialog } from "./delete-account-dialog";
 export function AccountsScreen() {
-  const { data, update, notify } = useFinance();
-  const [open, setOpen] = useState(false),
-    [name, setName] = useState(""),
-    [type, setType] = useState<Account["type"]>("cash"),
-    [opening, setOpening] = useState("0"),
-    [error, setError] = useState(""),
-    [pending, setPending] = useState(false);
-  function start() {
-    setName("");
-    setType("cash");
-    setOpening("0");
-    setError("");
-    setOpen(true);
-  }
-  async function save(event: React.FormEvent) {
-    event.preventDefault();
-    setError("");
-    if (!name.trim() || name.trim().length > 60) {
-      setError("กรอกชื่อบัญชี 1–60 ตัวอักษร");
-      return;
-    }
-    if (data.accounts.some((a) => a.name === name.trim())) {
-      setError("มีชื่อบัญชีนี้แล้ว กรุณาใช้ชื่ออื่น");
-      return;
-    }
-    let amount: number;
-    try {
-      amount = /^0+(\.0{1,2})?$/.test(opening.trim()) ? 0 : parseMoney(opening);
-    } catch (error) {
-      setError((error as Error).message);
-      return;
-    }
-    setPending(true);
-    const ok = await update((current) => ({
-      ...current,
-      accounts: [
-        ...current.accounts,
-        {
-          id: crypto.randomUUID(),
-          name: name.trim(),
-          type,
-          openingBalanceSatang: type === "credit" ? -amount : amount,
-        },
-      ],
-    }));
-    setPending(false);
-    if (ok) {
-      setOpen(false);
-      notify("เพิ่มบัญชีแล้ว เลือกใช้ในรายการได้ทันที");
-    } else setError("บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง");
-  }
+  const { data } = useFinance();
+  const [editing, setEditing] = useState<Account | null | undefined>(),
+    [deleting, setDeleting] = useState<Account | null>(null);
   return (
     <>
       <PageHeading
         title="เงินของคุณ อยู่ที่ไหนบ้าง"
-        description="เพิ่มบัญชีของคุณ แล้วเริ่มติดตามยอดเงินจากรายการที่บันทึก"
+        description="จัดการบัญชีและติดตามยอดเงินจากรายการที่บันทึก"
         eyebrow="EVERY ACCOUNT, ONE CLEAR VIEW"
         showMonth={false}
         action={
-          <Button onClick={start}>
+          <Button onClick={() => setEditing(null)}>
             <Plus size={17} />
             เพิ่มบัญชี
           </Button>
@@ -86,7 +33,8 @@ export function AccountsScreen() {
       <div className="info-callout">
         <Info size={17} />
         <p>
-          ข้อมูลบันทึกเฉพาะในเบราว์เซอร์นี้ ไม่มีการเชื่อมต่อธนาคารอัตโนมัติ
+          ข้อมูลเก็บในฐานข้อมูลภายใต้บัญชีของคุณ
+          ไม่มีการเชื่อมต่อธนาคารอัตโนมัติ
           การโอนเงินระหว่างบัญชียังไม่เปิดใช้งาน
         </p>
       </div>
@@ -101,18 +49,40 @@ export function AccountsScreen() {
       </Card>
       {data.accounts.length ? (
         <div className="account-cards">
-          {data.accounts.map((a) => (
-            <Card key={a.id} className="account-card">
-              <div>
+          {data.accounts.map((account) => (
+            <Card key={account.id} className="account-card">
+              <div className="account-card-heading">
                 <CategoryIcon
-                  icon={a.type === "credit" ? "credit" : "wallet"}
+                  icon={account.type === "credit" ? "credit" : "wallet"}
                 />
-                <span className="soft-label">{labels[a.type]}</span>
+                <span className="soft-label">
+                  {accountLabels[account.type]}
+                </span>
+                <div className="account-card-actions">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`แก้ไขบัญชี ${account.name}`}
+                    onClick={() => setEditing(account)}
+                  >
+                    <Pencil size={17} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`ลบบัญชี ${account.name}`}
+                    onClick={() => setDeleting(account)}
+                  >
+                    <Trash2 size={17} />
+                  </Button>
+                </div>
               </div>
-              <h2>{a.name}</h2>
-              <strong>{formatMoney(accountBalance(data, a.id))}</strong>
-              <p>ยอดยกมา {formatMoney(a.openingBalanceSatang)}</p>
-              {a.type === "credit" && <small>ยอดติดลบแสดงหนี้คงค้าง</small>}
+              <h2>{account.name}</h2>
+              <strong>{formatMoney(accountBalance(data, account.id))}</strong>
+              <p>ยอดยกมา {formatMoney(account.openingBalanceSatang)}</p>
+              {account.type === "credit" && (
+                <small>ยอดติดลบแสดงหนี้คงค้าง</small>
+              )}
             </Card>
           ))}
         </div>
@@ -123,74 +93,22 @@ export function AccountsScreen() {
             description="เริ่มจากเพิ่มเงินสด บัญชีธนาคาร e-Wallet หรือบัตรเครดิตของคุณ"
           />
           <div className="empty-action">
-            <Button onClick={start}>
+            <Button onClick={() => setEditing(null)}>
               <Plus size={17} />
               เพิ่มบัญชีแรก
             </Button>
           </div>
         </Card>
       )}
-      <Modal
-        open={open}
-        onOpenChange={(v) => {
-          if (!pending) setOpen(v);
-        }}
-        title="เพิ่มบัญชี"
-        description="ระบุบัญชีที่คุณใช้บันทึกเงิน ไม่ใช่การเชื่อมต่อธนาคาร"
-      >
-        <form className="editor-form" onSubmit={save} noValidate>
-          <label>
-            ชื่อบัญชี
-            <input
-              data-dialog-autofocus
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="เช่น เงินสดส่วนตัว"
-              maxLength={60}
-            />
-          </label>
-          <label>
-            ประเภทบัญชี
-            <select
-              value={type}
-              onChange={(e) => setType(e.target.value as Account["type"])}
-            >
-              {Object.entries(labels).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            {type === "credit" ? "ยอดหนี้ตั้งต้น (บาท)" : "ยอดยกมา (บาท)"}
-            <input
-              inputMode="decimal"
-              value={opening}
-              onChange={(e) => setOpening(e.target.value)}
-            />
-          </label>
-          <p className="form-note">ยอดยกมาไม่ถือเป็นรายรับหรือรายจ่าย</p>
-          {error && (
-            <p role="alert" className="field-error">
-              {error}
-            </p>
-          )}
-          <div className="form-actions">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-              disabled={pending}
-            >
-              ยกเลิก
-            </Button>
-            <Button type="submit" disabled={pending}>
-              {pending ? "กำลังบันทึก…" : "บันทึกบัญชี"}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+      {editing !== undefined && (
+        <AccountForm account={editing} onClose={() => setEditing(undefined)} />
+      )}
+      {deleting && (
+        <DeleteAccountDialog
+          account={deleting}
+          onClose={() => setDeleting(null)}
+        />
+      )}
     </>
   );
 }
