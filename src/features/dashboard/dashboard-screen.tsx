@@ -23,7 +23,12 @@ import {
   SpendingChart,
 } from "@/components/dashboard/charts";
 import { TransactionRow } from "@/features/transactions/transaction-row";
-import { foodMetrics, summarize, budgetState } from "@/lib/finance";
+import {
+  compareNewest,
+  foodMetrics,
+  summarize,
+  budgetState,
+} from "@/lib/finance";
 import { formatMoney, percentChange, percentLabel } from "@/lib/money";
 import { localDate, monthsEnding, monthLabel, shiftMonth } from "@/lib/dates";
 export function RangeSelect({
@@ -56,7 +61,7 @@ export function DashboardScreen() {
   const timeline = monthsEnding(month, range).map((m) => summarize(data, m));
   const recent = data.transactions
     .filter((t) => t.date.startsWith(`${month}-`))
-    .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id))
+    .sort(compareNewest)
     .slice(0, 5);
   const budgets = data.budgets
     .filter((b) => b.month === month && b.categoryId)

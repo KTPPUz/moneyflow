@@ -10,6 +10,14 @@ export function rootCategory(
     ? data.categories.find((c) => c.id === category.parentId)
     : category;
 }
+// Newest first: by date, then by the time the row was recorded.
+export function compareNewest(a: Transaction, b: Transaction) {
+  return (
+    b.date.localeCompare(a.date) ||
+    (b.createdAt ?? "").localeCompare(a.createdAt ?? "") ||
+    b.id.localeCompare(a.id)
+  );
+}
 export function expenseAmount(t: Transaction) {
   return t.kind === "expense"
     ? t.amountSatang

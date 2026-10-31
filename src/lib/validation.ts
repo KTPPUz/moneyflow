@@ -24,6 +24,7 @@ export const transactionSchema = z.object({
   notes: z.string().max(1000).optional(),
   tags: z.array(z.string().max(40)).max(10).optional(),
   refundOf: z.string().optional(),
+  createdAt: z.string().datetime().optional(),
 });
 export const financeSchema = z
   .object({

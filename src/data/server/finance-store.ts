@@ -28,7 +28,7 @@ async function load(tx: Tx, userId: string): Promise<FinanceData> {
       tx.category.findMany({ where, orderBy: { sortOrder: "asc" } }),
       tx.transaction.findMany({
         where,
-        orderBy: { transactionDate: "desc" },
+        orderBy: [{ transactionDate: "desc" }, { createdAt: "desc" }],
       }),
       tx.budget.findMany({ where }),
       tx.transfer.findMany({ where }),
@@ -63,6 +63,7 @@ async function load(tx: Tx, userId: string): Promise<FinanceData> {
       ...(t.notes !== null ? { notes: t.notes } : {}),
       ...(t.tags !== null ? { tags: t.tags as string[] } : {}),
       ...(t.refundOf ? { refundOf: t.refundOf } : {}),
+      createdAt: t.createdAt.toISOString(),
     })),
     budgets: budgets.map((b) => ({
       id: b.id,
@@ -185,7 +186,12 @@ async function persist(
     const created = transactions.created.filter(group);
     if (created.length)
       await tx.transaction.createMany({
-        data: created.map((t) => ({ userId, id: t.id, ...transactionRow(t) })),
+        data: created.map((t) => ({
+          userId,
+          id: t.id,
+          ...transactionRow(t),
+          ...(t.createdAt ? { createdAt: new Date(t.createdAt) } : {}),
+        })),
       });
     for (const t of transactions.updated.filter(group))
       await tx.transaction.update({

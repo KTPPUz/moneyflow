@@ -98,6 +98,7 @@ function TransactionForm({ initial }: { initial: Transaction | null }) {
   async function submit(values: TransactionFormValues) {
     const transaction: Transaction = {
       id: initial?.id ?? crypto.randomUUID(),
+      createdAt: initial?.createdAt ?? new Date().toISOString(),
       kind: values.kind,
       amountSatang: parseMoney(values.amount),
       date: values.date,

@@ -153,6 +153,7 @@ model Transaction {
   notes           String?  @db.Text
   tags            Json?
   refundOf        String?  @db.VarChar(64)
+  createdAt       DateTime @default(now())
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   category Category       @relation(fields: [userId, categoryId], references: [userId, id], onDelete: Restrict)

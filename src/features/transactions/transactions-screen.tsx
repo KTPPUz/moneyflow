@@ -9,7 +9,7 @@ import { Modal } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/shared/states";
 import { TransactionRow } from "./transaction-row";
 import { formatMoney, sumSatang } from "@/lib/money";
-import { rootCategory } from "@/lib/finance";
+import { compareNewest, rootCategory } from "@/lib/finance";
 import type { Transaction } from "@/types/finance";
 export function TransactionsScreen() {
   const { data, month, update, notify, setEditor } = useFinance();
@@ -41,8 +41,8 @@ export function TransactionsScreen() {
         : sort === "amount-asc"
           ? a.amountSatang - b.amountSatang
           : sort === "date-asc"
-            ? a.date.localeCompare(b.date) || a.id.localeCompare(b.id)
-            : b.date.localeCompare(a.date) || b.id.localeCompare(a.id),
+            ? compareNewest(b, a)
+            : compareNewest(a, b),
     );
   const hasFilter =
     search || kind !== "all" || account !== "all" || category !== "all";

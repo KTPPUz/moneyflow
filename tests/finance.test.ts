@@ -1,9 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import type { Transaction } from "../src/types/finance";
 import { createSeed } from "../src/data/legacy-seed";
 import {
   accountBalance,
   budgetState,
+  compareNewest,
   foodMetrics,
   monthlyBudget,
   summarize,
@@ -281,5 +283,20 @@ test("budget thresholds, referenced category archiving and invalid date/form inp
       tags: "",
     }).success,
     false,
+  );
+});
+
+test("compareNewest orders by date, then by time recorded", () => {
+  const row = (id: string, date: string, createdAt?: string) =>
+    ({ id, date, createdAt }) as Transaction;
+  const rows = [
+    row("a", "2026-11-01", "2026-11-01T01:00:00.000Z"),
+    row("b", "2026-11-02", "2026-11-02T00:30:00.000Z"),
+    row("c", "2026-11-01", "2026-11-01T09:00:00.000Z"),
+    row("d", "2026-11-01"),
+  ];
+  assert.deepEqual(
+    rows.sort(compareNewest).map((t) => t.id),
+    ["b", "c", "a", "d"],
   );
 });

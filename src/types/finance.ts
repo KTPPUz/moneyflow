@@ -27,6 +27,7 @@ export type Transaction = {
   notes?: string;
   tags?: string[];
   refundOf?: string;
+  createdAt?: string;
 };
 export type Transfer = {
   id: string;
