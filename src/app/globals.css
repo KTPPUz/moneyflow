@@ -2216,6 +2216,27 @@ tbody tr:last-child th {
   grid-template-columns: repeat(2, 1fr);
   gap: 20px;
 }
+.account-view-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.account-view-toolbar > p,
+.account-view-footnote {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.account-view-footnote {
+  margin-top: 20px;
+}
+.account-card .account-value-label {
+  margin-top: 12px;
+}
+.account-pool-formula {
+  overflow-wrap: anywhere;
+}
 .account-card {
   padding: 25px;
 }

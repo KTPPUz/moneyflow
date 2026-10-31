@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  paymentSummary,
+  paymentChannel,
   accountUsage,
   canReceiveAccount,
   parseOpeningBalance,
@@ -60,6 +62,55 @@ function fixture() {
   ];
   return data;
 }
+test("cash and bank expenses share one income pool regardless of which account receives income", () => {
+  const data = fixture();
+  data.accounts = data.accounts
+    .slice(0, 2)
+    .map((a) => ({ ...a, openingBalanceSatang: 0 }));
+  data.transfers = [];
+  data.transactions = [
+    { ...data.transactions[0], accountId: "bank", amountSatang: 2397500 },
+    { ...data.transactions[1], accountId: "cash", amountSatang: 21400 },
+    {
+      ...data.transactions[1],
+      id: "bank-expense",
+      accountId: "bank",
+      amountSatang: 1017538,
+    },
+  ];
+  assert.deepEqual(paymentSummary(data), {
+    income: 2397500,
+    expense: 1038938,
+    opening: 0,
+    balance: 1358562,
+  });
+  assert.equal(paymentChannel(data, "cash").expense, 21400);
+  assert.equal(paymentChannel(data, "bank").expense, 1017538);
+  const before = paymentSummary(data);
+  data.transactions[0].accountId = "cash";
+  assert.deepEqual(paymentSummary(data), before);
+  data.transactions.push({
+    ...data.transactions[1],
+    id: "refund",
+    kind: "refund",
+    refundOf: data.transactions[1].id,
+    amountSatang: 100,
+  });
+  assert.equal(paymentSummary(data).balance, 1358662);
+  assert.equal(paymentChannel(data, "cash").expense, 21300);
+  data.accounts[0].openingBalanceSatang = 50000;
+  assert.equal(paymentSummary(data).balance, 1408662);
+  data.transfers = [
+    {
+      id: "move",
+      sourceAccountId: "bank",
+      destinationAccountId: "cash",
+      amountSatang: 10000,
+      date: "2026-10-01",
+    },
+  ];
+  assert.equal(paymentSummary(data).balance, 1408662);
+});
 test("editing accounts preserves references, order and ledger totals while opening balance updates exact account totals", () => {
   const before = fixture();
   const after = saveAccount(

@@ -1,5 +1,28 @@
 import type { Account, FinanceData } from "@/types/finance";
 import { MAX_AMOUNT, parseMoney, sumSatang } from "./money";
+import { expenseAmount } from "./finance";
+
+export function paymentSummary(data: FinanceData) {
+  const income = sumSatang(
+    data.transactions
+      .filter((t) => t.kind === "income")
+      .map((t) => t.amountSatang),
+  );
+  const expense = sumSatang(data.transactions.map(expenseAmount));
+  const opening = sumSatang(data.accounts.map((a) => a.openingBalanceSatang));
+  return {
+    income,
+    expense,
+    opening,
+    balance: sumSatang([opening, income, -expense]),
+  };
+}
+export function paymentChannel(data: FinanceData, accountId: string) {
+  const rows = data.transactions.filter(
+    (t) => t.accountId === accountId && t.kind !== "income",
+  );
+  return { expense: sumSatang(rows.map(expenseAmount)), count: rows.length };
+}
 
 export function parseOpeningBalance(value: string) {
   const input = value.trim();

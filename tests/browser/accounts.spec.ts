@@ -84,6 +84,7 @@ test("accounts can be renamed, retyped and adjusted with persistence; unused acc
   page.on("pageerror", (error) => errors.push(error.message));
   const before = await snapshot(page);
   await page.goto("/accounts");
+  await page.getByRole("button", { name: "ยอดแยกบัญชี", exact: true }).click();
   await page
     .getByRole("button", { name: "แก้ไขบัญชี เงินสด", exact: true })
     .click();
@@ -104,6 +105,7 @@ test("accounts can be renamed, retyped and adjusted with persistence; unused acc
   await expect(card.locator(":scope > strong")).toHaveText("฿602.47");
   await expect(page.locator(".account-total > strong")).toHaveText("฿591.48");
   await page.reload();
+  await page.getByRole("button", { name: "ยอดแยกบัญชี", exact: true }).click();
   await expect(card).toContainText("ยอดยกมา ฿200.25");
   expect((await snapshot(page)).data.transactions).toEqual(
     before.data.transactions,
@@ -220,4 +222,85 @@ test("failed edits keep form input and stale edits do not recreate an account re
   expect(
     (await snapshot(page)).data.accounts.some((a) => a.id === "cash"),
   ).toBe(false);
+});
+
+test("cash and bank spending reduce the shared income pool without requiring cash opening funds", async ({
+  page,
+}, info) => {
+  const state = await snapshot(page);
+  state.data.accounts = state.data.accounts.map((a) => ({
+    ...a,
+    openingBalanceSatang: 0,
+  }));
+  state.data.transfers = [];
+  const income = state.data.transactions.find((t) => t.kind === "income")!;
+  const expense = state.data.transactions.find((t) => t.kind === "expense")!;
+  state.data.transactions = [
+    { ...income, accountId: "bank", amountSatang: 2397500 },
+    { ...expense, accountId: "cash", amountSatang: 21400 },
+    {
+      ...expense,
+      id: "bank-spending",
+      accountId: "bank",
+      amountSatang: 1017538,
+    },
+  ];
+  expect((await page.request.put("/api/finance", { data: state })).ok()).toBe(
+    true,
+  );
+  await page.goto("/accounts");
+  await expect(
+    page.getByRole("button", { name: "ใช้จ่ายตามช่องทาง", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".account-total > strong")).toHaveText(
+    "฿13,585.62",
+  );
+  await expect(page.locator(".account-pool-formula")).toContainText(
+    "รายรับรวม ฿23,975",
+  );
+  await expect(page.locator(".account-pool-formula")).toContainText(
+    "รายจ่ายสุทธิทุกช่องทาง ฿10,389.38",
+  );
+  const cash = page
+    .locator(".account-card")
+    .filter({
+      has: page.getByRole("heading", { name: "เงินสด", exact: true }),
+    });
+  const bank = page
+    .locator(".account-card")
+    .filter({
+      has: page.getByRole("heading", { name: "ธนาคาร", exact: true }),
+    });
+  await expect(cash.locator(":scope > strong")).toHaveText("฿214");
+  await expect(bank.locator(":scope > strong")).toHaveText("฿10,175.38");
+  await expect(cash).toContainText("รายจ่ายสุทธิผ่านช่องทางนี้");
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: info.outputPath("shared-income-light.png"),
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "เปลี่ยนเป็น Dark Mode" }).click();
+  await page.screenshot({
+    path: info.outputPath("shared-income-dark.png"),
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "ยอดแยกบัญชี", exact: true }).click();
+  await expect(cash.locator(":scope > strong")).toHaveText("−฿214");
+  await expect(bank.locator(":scope > strong")).toHaveText("฿13,799.62");
+  await expect(page.locator(".account-total > strong")).toHaveText(
+    "฿13,585.62",
+  );
+  await page
+    .getByRole("button", { name: "ใช้จ่ายตามช่องทาง", exact: true })
+    .click();
+  await expect(cash.locator(":scope > strong")).toHaveText("฿214");
+  expect(
+    (await snapshot(page)).data.transactions.map((t) => t.amountSatang).sort(),
+  ).toEqual(state.data.transactions.map((t) => t.amountSatang).sort());
 });
