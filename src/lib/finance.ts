@@ -90,6 +90,17 @@ export function budgetState(used: number, budget: number) {
               : "normal",
   };
 }
+// The monthly limit has one source: recorded income, never a saved overall budget.
+export function monthlyBudget(
+  summary: Pick<MonthSummary, "income" | "expense">,
+) {
+  const state = budgetState(summary.expense, summary.income);
+  return {
+    ...state,
+    amountSatang: summary.income,
+    status: summary.income === 0 && state.over > 0 ? "exceeded" : state.status,
+  };
+}
 export function accountBalance(data: FinanceData, accountId: string) {
   const opening =
     data.accounts.find((a) => a.id === accountId)?.openingBalanceSatang ?? 0;

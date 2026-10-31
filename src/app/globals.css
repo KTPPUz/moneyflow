@@ -1605,6 +1605,11 @@ main {
   justify-content: center;
   border-radius: 22px;
 }
+.overall-source {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
 .overall-progress {
   display: flex;
   gap: 15px;

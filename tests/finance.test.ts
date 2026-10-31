@@ -5,6 +5,7 @@ import {
   accountBalance,
   budgetState,
   foodMetrics,
+  monthlyBudget,
   summarize,
 } from "../src/lib/finance";
 import {
@@ -20,6 +21,94 @@ import {
   validDate,
 } from "../src/lib/dates";
 import { financeSchema, transactionFormSchema } from "../src/lib/validation";
+test("monthly budget follows income additions, edits, month moves and deletions without changing category limits", () => {
+  const d = createSeed("2026-10-30");
+  d.transactions = [];
+  d.budgets = [
+    {
+      id: "old-total",
+      month: "2026-10",
+      categoryId: null,
+      amountSatang: 999999,
+    },
+    {
+      id: "food-limit",
+      month: "2026-10",
+      categoryId: "food",
+      amountSatang: 600000,
+    },
+  ];
+  const originalBudgets = structuredClone(d.budgets);
+  const current = () => monthlyBudget(summarize(d, "2026-10"));
+  assert.equal(current().amountSatang, 0);
+  d.transactions.push(
+    {
+      id: "salary",
+      kind: "income",
+      categoryId: "salary",
+      accountId: "bank",
+      amountSatang: 2397500,
+      date: "2026-10-01",
+      description: "เงินเดือน",
+    },
+    {
+      id: "expense",
+      kind: "expense",
+      categoryId: "food",
+      accountId: "bank",
+      amountSatang: 1038938,
+      date: "2026-10-02",
+      description: "รายจ่าย",
+    },
+  );
+  assert.equal(current().amountSatang, 2397500);
+  assert.equal(current().remaining, 1358562);
+  assert.equal(percentLabel(current().ratio), "43.33%");
+  d.transactions.push({ ...d.transactions[0], id: "extra", amountSatang: 1 });
+  assert.equal(current().amountSatang, 2397501);
+  d.transactions[0].amountSatang = 1000000;
+  assert.equal(current().over, 38937);
+  d.transactions[0].date = "2026-11-01";
+  assert.equal(current().amountSatang, 1);
+  assert.equal(monthlyBudget(summarize(d, "2026-11")).amountSatang, 1000000);
+  d.transactions = d.transactions.filter((t) => t.id !== "extra");
+  assert.equal(current().amountSatang, 0);
+  assert.equal(current().remaining, 0);
+  assert.equal(current().over, 1038938);
+  assert.equal(current().status, "exceeded");
+  assert.equal(current().ratio, null);
+  assert.deepEqual(d.budgets, originalBudgets);
+});
+test("monthly budget excludes opening balances, transfers and refunds from income and handles empty months", () => {
+  const d = createSeed("2026-10-30");
+  d.transactions = [
+    {
+      id: "refund",
+      kind: "refund",
+      categoryId: "food",
+      accountId: "bank",
+      amountSatang: 2000,
+      date: "2026-10-01",
+      description: "คืนเงิน",
+    },
+  ];
+  d.transfers = [
+    {
+      id: "transfer",
+      sourceAccountId: "bank",
+      destinationAccountId: "cash",
+      amountSatang: 500000,
+      date: "2026-10-01",
+    },
+  ];
+  assert.equal(monthlyBudget(summarize(d, "2026-10")).amountSatang, 0);
+  assert.equal(monthlyBudget(summarize(d, "2026-10")).over, 0);
+  const empty = monthlyBudget(summarize(d, "2026-11"));
+  assert.equal(empty.amountSatang, 0);
+  assert.equal(empty.remaining, 0);
+  assert.equal(empty.over, 0);
+  assert.equal(empty.ratio, null);
+});
 test("financial inputs preserve cents, allow negative net and reject invalid amounts", () => {
   assert.equal(parseMoney("0.10") + parseMoney("0.20"), 30);
   assert.equal(formatMoney(-123456), "−฿1,234.56");

@@ -7,19 +7,18 @@ import { CategoryIcon } from "@/components/shared/category-icon";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/dialog";
-import { budgetState, summarize } from "@/lib/finance";
+import { budgetState, monthlyBudget, summarize } from "@/lib/finance";
 import { formatMoney, moneyInput, parseMoney, percentLabel } from "@/lib/money";
 import { monthLabel } from "@/lib/dates";
 export function BudgetsScreen() {
   const { data, month, update, notify } = useFinance();
-  const [editing, setEditing] = useState<string | null | undefined>(undefined),
+  const [editing, setEditing] = useState<string | undefined>(undefined),
     [amount, setAmount] = useState(""),
     [error, setError] = useState(""),
     [pending, setPending] = useState(false);
   const summary = summarize(data, month);
   const budgets = data.budgets.filter((b) => b.month === month);
-  const overall = budgets.find((b) => b.categoryId === null);
-  const overallState = budgetState(summary.expense, overall?.amountSatang ?? 0);
+  const overallState = monthlyBudget(summary);
   const categories = data.categories
     .filter(
       (c) =>
@@ -28,7 +27,7 @@ export function BudgetsScreen() {
         (!c.archivedAt || summary.categories.some((s) => s.id === c.id)),
     )
     .sort((a, b) => a.order - b.order);
-  function edit(categoryId: string | null) {
+  function edit(categoryId: string) {
     setEditing(categoryId);
     const existing = budgets.find((b) => b.categoryId === categoryId);
     setAmount(existing ? moneyInput(existing.amountSatang) : "");
@@ -36,6 +35,7 @@ export function BudgetsScreen() {
   }
   async function save(e: React.FormEvent) {
     e.preventDefault();
+    if (editing === undefined || pending) return;
     setError("");
     let satang: number;
     try {
@@ -45,14 +45,14 @@ export function BudgetsScreen() {
       return;
     }
     setPending(true);
-    const id = `${month}-${editing ?? "overall"}`;
+    const id = `${month}-${editing}`;
     const ok = await update((current) => ({
       ...current,
       budgets: [
         ...current.budgets.filter(
           (b) => !(b.month === month && b.categoryId === editing),
         ),
-        { id, month, categoryId: editing ?? null, amountSatang: satang },
+        { id, month, categoryId: editing, amountSatang: satang },
       ],
     }));
     setPending(false);
@@ -65,14 +65,8 @@ export function BudgetsScreen() {
     <>
       <PageHeading
         title="วางแผนเงิน ให้พอดีกับชีวิต"
-        description="กำหนดงบที่สบายใจ แล้วค่อย ๆ ดูแลให้เป็นไปตามแผน"
+        description="งบรวมปรับตามรายรับของเดือนที่เลือกอัตโนมัติ พร้อมวางแผนงบรายหมวดได้ตามต้องการ"
         eyebrow="A LITTLE PLAN GOES A LONG WAY"
-        action={
-          <Button onClick={() => edit(null)}>
-            <Pencil size={16} />
-            ปรับงบรวม
-          </Button>
-        }
       />
       <Card className={`overall-budget ${overallState.status}`}>
         <div className="overall-top">
@@ -81,9 +75,12 @@ export function BudgetsScreen() {
               MONTHLY BUDGET · {monthLabel(month)}
             </span>
             <h2>งบประมาณประจำเดือน</h2>
-            <strong>
-              {overall ? formatMoney(overall.amountSatang) : "ยังไม่ได้กำหนด"}
-            </strong>
+            <strong>{formatMoney(overallState.amountSatang)}</strong>
+            <p className="overall-source">
+              {summary.income > 0
+                ? "ซิงค์จากรายรับในเดือนนี้อัตโนมัติ"
+                : "ยังไม่มีรายรับในเดือนนี้ เพิ่มรายการรายรับเพื่อเริ่มใช้งบ"}
+            </p>
           </div>
           <span className="overall-wallet">
             <Wallet size={34} />
@@ -97,7 +94,11 @@ export function BudgetsScreen() {
               }}
             />
           </div>
-          <span>{percentLabel(overallState.ratio)} ใช้แล้ว</span>
+          <span>
+            {overallState.ratio === null
+              ? "ยังไม่มีรายรับสำหรับคำนวณสัดส่วน"
+              : `${percentLabel(overallState.ratio)} ใช้แล้ว`}
+          </span>
         </div>
         <div className="overall-metrics">
           <div>
@@ -106,7 +107,7 @@ export function BudgetsScreen() {
           </div>
           <div>
             <span>งบคงเหลือ</span>
-            <b>{overall ? formatMoney(overallState.remaining) : "N/A"}</b>
+            <b>{formatMoney(overallState.remaining)}</b>
           </div>
           <div>
             <span>เกินงบประมาณ</span>
@@ -194,11 +195,7 @@ export function BudgetsScreen() {
         onOpenChange={(v) => {
           if (!v && !pending) setEditing(undefined);
         }}
-        title={
-          editing === null
-            ? "ปรับงบประมาณรวม"
-            : `งบ${data.categories.find((c) => c.id === editing)?.name ?? "หมวดหมู่"}`
-        }
+        title={`งบ${data.categories.find((c) => c.id === editing)?.name ?? "หมวดหมู่"}`}
         description={`สำหรับ${monthLabel(month)} · เปลี่ยนเฉพาะงบของเดือนนี้`}
       >
         <form onSubmit={save} className="editor-form" noValidate>
