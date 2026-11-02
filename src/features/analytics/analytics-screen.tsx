@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { CashFlowChart, FoodChart } from "@/components/dashboard/charts";
 import {
   expenseAmount,
+  dailyFoodTimeline,
   foodMetrics,
   rootCategory,
   summarize,
@@ -41,6 +42,7 @@ export function FoodAnalyticsScreen() {
   const { data, month } = useFinance();
   const metrics = foodMetrics(data, month, shiftMonth(month, -1));
   const [mode, setMode] = useState<"amount" | "share">("amount");
+  const [period, setPeriod] = useState<"daily" | "monthly">("monthly");
   const [from, setFrom] = useState(shiftMonth(month, -11)),
     [to, setTo] = useState(month);
   const [compareFrom, setCompareFrom] = useState(shiftMonth(month, -1)),
@@ -52,6 +54,8 @@ export function FoodAnalyticsScreen() {
   const timeline = valid
     ? monthsEnding(to, count).map((m) => summarize(data, m))
     : [];
+  const chartTimeline =
+    period === "daily" && valid ? dailyFoodTimeline(data, from, to) : timeline;
   const comparison = foodMetrics(
     data,
     compareTo || month,
@@ -149,6 +153,31 @@ export function FoodAnalyticsScreen() {
               </button>
             </div>
           </div>
+          <div
+            className="segmented-tabs compact"
+            role="group"
+            aria-label="ความละเอียดกราฟค่าอาหาร"
+          >
+            <button
+              aria-pressed={period === "daily"}
+              className={period === "daily" ? "selected" : ""}
+              onClick={() => setPeriod("daily")}
+            >
+              รายวัน
+            </button>
+            <button
+              aria-pressed={period === "monthly"}
+              className={period === "monthly" ? "selected" : ""}
+              onClick={() => setPeriod("monthly")}
+            >
+              รายเดือน
+            </button>
+          </div>
+          <p className="table-footnote">
+            {period === "daily"
+              ? "แสดงค่าอาหารแยกแต่ละวัน · % คิดจากค่าอาหารวันนั้น ÷ รายรับรวมของเดือนนั้น"
+              : "แสดงค่าอาหารรวมแต่ละเดือน · % คิดจากค่าอาหารเดือนนั้น ÷ รายรับรวมของเดือนนั้น"}
+          </p>
           <div className="date-range">
             <label>
               จากเดือน
@@ -171,7 +200,7 @@ export function FoodAnalyticsScreen() {
             </label>
           </div>
           {valid ? (
-            <FoodChart data={timeline} mode={mode} />
+            <FoodChart data={chartTimeline} mode={mode} period={period} />
           ) : (
             <p role="alert" className="inline-error">
               เลือกเดือนเริ่มต้นก่อนเดือนสิ้นสุด และช่วงไม่เกิน 36 เดือน

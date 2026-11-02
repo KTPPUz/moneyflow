@@ -67,6 +67,32 @@ async function addTransaction(
     .click();
   await expect(dialog).not.toBeVisible();
 }
+test("food chart switches daily and monthly independently of percentage units", async ({
+  page,
+}) => {
+  await page.goto("/analytics/food");
+  const trend = page.locator(".analytics-trend");
+  await page.getByLabel("ช่วงวิเคราะห์จากเดือน").fill("2026-10");
+  await page.getByLabel("ช่วงวิเคราะห์ถึงเดือน").fill("2026-10");
+  await trend.locator("summary").click();
+  await expect(trend.locator("tbody tr")).toHaveCount(1);
+  await trend.getByRole("button", { name: "รายวัน", exact: true }).click();
+  await expect(trend.locator("tbody tr")).toHaveCount(31);
+  await expect(
+    trend.getByRole("columnheader", { name: "วันที่", exact: true }),
+  ).toBeVisible();
+  await trend.getByRole("button", { name: "% รายรับ", exact: true }).click();
+  await expect(trend.locator("tbody tr")).toHaveCount(31);
+  await expect(
+    trend.getByRole("button", { name: "รายวัน", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await trend.getByRole("button", { name: "รายเดือน", exact: true }).click();
+  await expect(trend.locator("tbody tr")).toHaveCount(1);
+  await expect(
+    trend.getByRole("button", { name: "% รายรับ", exact: true }),
+  ).toHaveClass("selected");
+});
+
 test("dashboard and routes are responsive, figures reconcile and themes persist", async ({
   page,
 }, info) => {

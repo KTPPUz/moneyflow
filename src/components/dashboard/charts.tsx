@@ -197,9 +197,11 @@ export function SpendingChart({ month }: { month: MonthSummary }) {
 export function FoodChart({
   data,
   mode = "share",
+  period = "monthly",
 }: {
-  data: MonthSummary[];
+  data: Pick<MonthSummary, "key" | "name" | "short" | "food" | "income">[];
   mode?: "share" | "amount";
+  period?: "daily" | "monthly";
 }) {
   const points = data.map((m) => ({
     ...m,
@@ -270,7 +272,11 @@ export function FoodChart({
                 mode === "share"
                   ? percentLabel(Number(v))
                   : formatMoney(Number(v)),
-                mode === "share" ? "ค่าอาหาร / รายรับ" : "ค่าอาหาร",
+                mode === "share"
+                  ? period === "daily"
+                    ? "ค่าอาหารรายวัน / รายรับเดือนนั้น"
+                    : "ค่าอาหาร / รายรับ"
+                  : "ค่าอาหาร",
               ]}
             />
             <Area
@@ -297,9 +303,11 @@ export function FoodChart({
           <table>
             <thead>
               <tr>
-                <th>เดือน</th>
+                <th>{period === "daily" ? "วันที่" : "เดือน"}</th>
                 <th>ค่าอาหาร</th>
-                <th>ต่อรายรับ</th>
+                <th>
+                  {period === "daily" ? "ต่อรายรับเดือนนั้น" : "ต่อรายรับ"}
+                </th>
               </tr>
             </thead>
             <tbody>

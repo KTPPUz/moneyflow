@@ -1,5 +1,5 @@
 import type { FinanceData, MonthSummary, Transaction } from "@/types/finance";
-import { monthLabel, shortMonth } from "./dates";
+import { dateLabel, monthLabel, monthsEnding, shortMonth } from "./dates";
 import { percentage, percentChange, sumSatang } from "./money";
 export function rootCategory(
   data: Pick<FinanceData, "categories">,
@@ -61,6 +61,47 @@ export function summarize(data: FinanceData, month: string): MonthSummary {
     categories,
   };
 }
+// Daily spending uses the month's income as its percentage base, including
+// days without income. A salary paid once a month still funds every day.
+export function dailyFoodTimeline(data: FinanceData, from: string, to: string) {
+  if (
+    !/^\d{4}-(0[1-9]|1[0-2])$/.test(from) ||
+    !/^\d{4}-(0[1-9]|1[0-2])$/.test(to)
+  )
+    return [];
+  const [fy, fm] = from.split("-").map(Number);
+  const [ty, tm] = to.split("-").map(Number);
+  const count = (ty - fy) * 12 + tm - fm + 1;
+  if (count <= 0 || count > 36) return [];
+  const foodCategoryIds = new Set(
+    data.categories
+      .filter((c) => c.isFood || rootCategory(data, c.id)?.isFood)
+      .map((c) => c.id),
+  );
+  const byDate = new Map<string, number[]>();
+  for (const t of data.transactions) {
+    if (!foodCategoryIds.has(t.categoryId)) continue;
+    const amounts = byDate.get(t.date) ?? [];
+    amounts.push(expenseAmount(t));
+    byDate.set(t.date, amounts);
+  }
+  return monthsEnding(to, count).flatMap((month) => {
+    const { income } = summarize(data, month);
+    const [year, monthNumber] = month.split("-").map(Number);
+    const days = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
+    return Array.from({ length: days }, (_, i) => {
+      const key = `${month}-${String(i + 1).padStart(2, "0")}`;
+      return {
+        key,
+        name: dateLabel(key),
+        short: `${i + 1}/${monthNumber}`,
+        income,
+        food: sumSatang(byDate.get(key) ?? []),
+      };
+    });
+  });
+}
+
 export function foodMetrics(
   data: FinanceData,
   month: string,
