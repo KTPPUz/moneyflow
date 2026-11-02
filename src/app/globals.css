@@ -4411,6 +4411,117 @@ tbody tr:last-child th {
   }
 }
 
+/* Apply the same responsive amount sizing to the other finance screens. */
+@media (max-width: 1279px) {
+  .account-total,
+  .account-card,
+  .category-budget,
+  .planning-summary > .panel,
+  .goal-card,
+  .goal-monthly,
+  .food-summary,
+  .food-breakdown,
+  .comparison-result > div,
+  .overall-metrics > div,
+  .mini-summary-grid > .panel > div,
+  .overall-top > div:first-child,
+  .transaction-amount {
+    container-type: inline-size;
+    min-width: 0;
+  }
+  .mini-summary-grid > .panel > div,
+  .overall-top > div:first-child,
+  .comparison-result > div {
+    flex: 1;
+  }
+  .mini-summary-icon,
+  .overall-wallet {
+    flex-shrink: 0;
+  }
+  .mini-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .overall-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .account-total strong,
+  .account-card strong,
+  .overall-top strong,
+  .budget-card-amount strong,
+  .planning-summary strong,
+  .goal-amount strong,
+  .food-summary > strong {
+    font-size: clamp(12px, 10cqi, 24px);
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    letter-spacing: -0.4px;
+  }
+  .mini-summary-grid b,
+  .overall-metrics b,
+  .goal-monthly strong,
+  .comparison-result strong,
+  .food-breakdown-total strong {
+    font-size: clamp(12px, 14cqi, 20px);
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .budget-card-amount span,
+  .goal-amount > span,
+  .goal-progress-label > span,
+  .budget-card-footer > span,
+  .account-card p,
+  .comparison-result small {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .bill-amount,
+  .contribution-history strong {
+    min-width: 0;
+    max-width: 100%;
+    font-size: clamp(12px, 2vw, 18px);
+    overflow-wrap: anywhere;
+  }
+  .transaction-amount b,
+  .compact .transaction-amount b,
+  .full-transaction-list .transaction-amount b {
+    display: block;
+    font-size: clamp(10px, 11cqi, 12px);
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .transaction-amount {
+    width: clamp(90px, 28vw, 125px);
+  }
+  .food-breakdown-total {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .breakdown-row > span:last-child {
+    min-width: 0;
+    max-width: 45%;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 639px) {
+  .account-total strong,
+  .account-card strong,
+  .overall-top strong,
+  .budget-card-amount strong,
+  .planning-summary strong,
+  .goal-amount strong,
+  .food-summary > strong {
+    font-size: clamp(12px, 8cqi, 20px);
+  }
+  .amount-field input {
+    font-size: 24px !important;
+  }
+}
+
 @media (max-width: 639px) {
   .stat-value,
   .analytics-stats .stat-value,
