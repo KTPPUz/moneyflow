@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowDownLeft, ArrowUpRight, Check, Wallet } from "lucide-react";
@@ -14,6 +15,8 @@ import {
   type TransactionFormValues,
 } from "@/lib/validation";
 import type { Transaction } from "@/types/finance";
+import { ReceiptAttachment } from "./receipt-attachment";
+import { uploadReceipt } from "@/lib/receipt-client";
 export function TransactionEditor() {
   const { editor, setEditor, data } = useFinance();
   return (
@@ -23,7 +26,7 @@ export function TransactionEditor() {
         if (!open) setEditor(undefined);
       }}
       title={editor ? "แก้ไขรายการ" : "เพิ่มรายการใหม่"}
-      description="บันทึกเรื่องเงินของคุณ · ข้อมูลเก็บในเบราว์เซอร์นี้"
+      description="บันทึกเรื่องเงินของคุณ พร้อมแนบสลิปไว้กับรายการ"
     >
       {editor !== undefined &&
         (data.accounts.length && data.categories.some((c) => !c.archivedAt) ? (
@@ -54,6 +57,9 @@ export function TransactionEditor() {
 }
 function TransactionForm({ initial }: { initial: Transaction | null }) {
   const { data, update, setEditor, notify, month, setMonth } = useFinance();
+  const [receiptId, setReceiptId] = useState(initial?.receiptId);
+  const [receiptFile, setReceiptFile] = useState<File>();
+  const [preparingReceipt, setPreparingReceipt] = useState(false);
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionFormSchema),
     defaultValues: {
@@ -96,9 +102,27 @@ function TransactionForm({ initial }: { initial: Transaction | null }) {
       </span>
     ) : null;
   async function submit(values: TransactionFormValues) {
+    if (preparingReceipt) return;
+    let attachedId = receiptId;
+    if (receiptFile) {
+      try {
+        attachedId = await uploadReceipt(receiptFile);
+        setReceiptId(attachedId);
+        setReceiptFile(undefined);
+      } catch (error) {
+        form.setError("root", {
+          message:
+            error instanceof Error
+              ? error.message
+              : "อัปโหลดสลิปไม่สำเร็จ กรุณาลองอีกครั้ง",
+        });
+        return;
+      }
+    }
     const transaction: Transaction = {
       id: initial?.id ?? crypto.randomUUID(),
       createdAt: initial?.createdAt ?? new Date().toISOString(),
+      ...(attachedId ? { receiptId: attachedId } : {}),
       kind: values.kind,
       amountSatang: parseMoney(values.amount),
       date: values.date,
@@ -126,9 +150,7 @@ function TransactionForm({ initial }: { initial: Transaction | null }) {
       setMonth(values.date.slice(0, 7));
       setEditor(undefined);
       notify(
-        initial
-          ? "แก้ไขรายการแล้ว ทุกหน้าคำนวณใหม่แล้ว"
-          : "เพิ่มรายการในเบราว์เซอร์แล้ว",
+        initial ? "แก้ไขรายการแล้ว ทุกหน้าคำนวณใหม่แล้ว" : "เพิ่มรายการแล้ว",
       );
     }
   }
@@ -267,6 +289,16 @@ function TransactionForm({ initial }: { initial: Transaction | null }) {
         />
         {errorText("notes")}
       </label>
+      <ReceiptAttachment
+        receiptId={receiptId}
+        disabled={form.formState.isSubmitting}
+        onBusyChange={setPreparingReceipt}
+        onFile={setReceiptFile}
+        onRemove={() => {
+          setReceiptId(undefined);
+          setReceiptFile(undefined);
+        }}
+      />
       {form.formState.errors.root && (
         <p role="alert" className="inline-error">
           {form.formState.errors.root.message}
@@ -274,7 +306,7 @@ function TransactionForm({ initial }: { initial: Transaction | null }) {
       )}
       <div className="form-note">
         <Wallet size={14} />
-        บันทึกเฉพาะในเบราว์เซอร์นี้
+        รายการและสลิปบันทึกไว้ในบัญชีของคุณ
       </div>
       <div className="form-actions">
         <Button
@@ -284,7 +316,10 @@ function TransactionForm({ initial }: { initial: Transaction | null }) {
         >
           ยกเลิก
         </Button>
-        <Button type="submit" disabled={form.formState.isSubmitting}>
+        <Button
+          type="submit"
+          disabled={form.formState.isSubmitting || preparingReceipt}
+        >
           <Check size={16} />
           {form.formState.isSubmitting ? "กำลังบันทึก…" : "บันทึกรายการ"}
         </Button>

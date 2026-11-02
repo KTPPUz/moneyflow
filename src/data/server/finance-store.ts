@@ -64,6 +64,7 @@ async function load(tx: Tx, userId: string): Promise<FinanceData> {
       ...(t.tags !== null ? { tags: t.tags as string[] } : {}),
       ...(t.refundOf ? { refundOf: t.refundOf } : {}),
       createdAt: t.createdAt.toISOString(),
+      ...(t.receiptId ? { receiptId: t.receiptId } : {}),
     })),
     budgets: budgets.map((b) => ({
       id: b.id,
@@ -110,6 +111,7 @@ const transactionRow = (t: Transaction) => ({
   notes: t.notes ?? null,
   tags: t.tags ?? Prisma.DbNull,
   refundOf: t.refundOf ?? null,
+  receiptId: t.receiptId ?? null,
 });
 const budgetRow = (b: Budget) => ({
   month: b.month,
@@ -155,6 +157,21 @@ async function persist(
   const transactions = diff(current.transactions, next.transactions);
   const budgets = diff(current.budgets, next.budgets);
   const transfers = diff(current.transfers, next.transfers);
+  const receiptIds = [
+    ...new Set(
+      next.transactions.flatMap((t) => (t.receiptId ? [t.receiptId] : [])),
+    ),
+  ];
+  if (receiptIds.length) {
+    const receipts = await tx.receipt.findMany({
+      where: { userId, id: { in: receiptIds } },
+      select: { id: true },
+    });
+    if (receipts.length !== receiptIds.length)
+      throw new ColumnLimitError(
+        "ไม่พบสลิปที่แนบ กรุณาเลือกไฟล์แล้วลองอีกครั้ง",
+      );
+  }
   // Budgets go first: a replacement may reuse the month and category of a deleted row.
   if (budgets.deleted.length)
     await tx.budget.deleteMany({
@@ -335,6 +352,7 @@ export async function resetFinance(userId: string): Promise<StoredFinance> {
       await load(tx, userId),
       ensureDefaultCategories(emptyFinanceData()),
     );
+    await tx.receipt.deleteMany({ where: { userId } });
     return { data: await load(tx, userId), revision: state.revision };
   }, TX_OPTIONS);
 }

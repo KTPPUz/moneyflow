@@ -4399,6 +4399,66 @@ tbody tr:last-child th {
   background: var(--muted);
 }
 
+.receipt-attachment {
+  display: grid;
+  gap: 9px;
+  min-width: 0;
+}
+.receipt-attachment > label,
+.receipt-actions,
+.receipt-actions > a,
+.transaction-receipt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.receipt-attachment > small {
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.receipt-attachment input[type="file"] {
+  width: 100%;
+  min-width: 0;
+  font-size: 12px;
+}
+.receipt-preview {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--muted);
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+.receipt-preview img {
+  width: 72px;
+  height: 96px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: var(--card);
+}
+.receipt-preview > div > span {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.receipt-actions {
+  flex-wrap: wrap;
+  margin-top: 8px;
+  font-size: 12px;
+}
+.receipt-actions > a {
+  min-height: 44px;
+  color: var(--primary-text);
+}
+.transaction-receipt {
+  width: fit-content;
+  min-height: 28px;
+  margin-top: 3px;
+  color: var(--primary-text);
+  font-size: 11px;
+}
+
 /* Size summary numbers against the space left beside their icon. */
 @media (max-width: 1279px) {
   .stat-copy {

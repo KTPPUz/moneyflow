@@ -25,6 +25,7 @@ export const transactionSchema = z.object({
   tags: z.array(z.string().max(40)).max(10).optional(),
   refundOf: z.string().optional(),
   createdAt: z.string().datetime().optional(),
+  receiptId: z.string().uuid().optional(),
 });
 export const financeSchema = z
   .object({

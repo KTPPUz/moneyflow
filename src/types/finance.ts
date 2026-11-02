@@ -28,6 +28,7 @@ export type Transaction = {
   tags?: string[];
   refundOf?: string;
   createdAt?: string;
+  receiptId?: string;
 };
 export type Transfer = {
   id: string;

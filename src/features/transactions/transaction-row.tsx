@@ -1,5 +1,5 @@
 "use client";
-import { Pencil, Trash2 } from "lucide-react";
+import { Paperclip, Pencil, Trash2 } from "lucide-react";
 import { useFinance } from "@/components/providers";
 import { Button } from "@/components/ui/button";
 import { CategoryIcon } from "@/components/shared/category-icon";
@@ -26,6 +26,17 @@ export function TransactionRow({
         <small>
           {category?.name} <span>· {account?.name}</span>
         </small>
+        {t.receiptId && (
+          <a
+            className="transaction-receipt"
+            href={`/api/receipts/${t.receiptId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`ดูสลิป ${t.description || category?.name || "รายการ"}`}
+          >
+            <Paperclip size={12} /> ดูสลิป
+          </a>
+        )}
       </div>
       {!compact && (
         <span className="transaction-date">{dateLabel(t.date)}</span>

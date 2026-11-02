@@ -28,6 +28,7 @@ model User {
   transactions    Transaction[]
   budgets         Budget[]
   transfers       Transfer[]
+  receipts        Receipt[]
 
   @@map("users")
 }
@@ -154,19 +155,39 @@ model Transaction {
   tags            Json?
   refundOf        String?  @db.VarChar(64)
   createdAt       DateTime @default(now())
+  receiptId       String?  @db.VarChar(64)
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   category Category       @relation(fields: [userId, categoryId], references: [userId, id], onDelete: Restrict)
   account  FinanceAccount @relation(fields: [userId, accountId], references: [userId, id], onDelete: Restrict)
   original Transaction?   @relation("Refunds", fields: [userId, refundOf], references: [userId, id], onDelete: NoAction, onUpdate: NoAction)
   refunds  Transaction[]  @relation("Refunds")
+  receipt  Receipt?       @relation(fields: [userId, receiptId], references: [userId, id], onDelete: NoAction, onUpdate: NoAction)
 
   @@id([userId, id])
   @@index([userId, transactionDate])
   @@index([userId, categoryId])
   @@index([userId, accountId])
   @@index([userId, refundOf])
+  @@index([userId, receiptId])
   @@map("transactions")
+}
+
+// Kept separately so undoing a transaction deletion can restore its receipt.
+model Receipt {
+  userId       String        @db.VarChar(64)
+  id           String        @db.VarChar(64)
+  name         String        @db.VarChar(180)
+  mimeType     String        @db.VarChar(32)
+  size         Int
+  content      Bytes         @db.MediumBlob
+  createdAt    DateTime      @default(now())
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@id([userId, id])
+  @@index([userId, createdAt])
+  @@map("receipts")
 }
 
 model Budget {
