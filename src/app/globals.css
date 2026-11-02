@@ -4395,3 +4395,43 @@ tbody tr:last-child th {
 .profile-menu button:hover {
   background: var(--muted);
 }
+
+/* Size summary numbers against the space left beside their icon. */
+@media (max-width: 1279px) {
+  .stat-copy {
+    container-type: inline-size;
+  }
+  .stat-value,
+  .analytics-stats .stat-value,
+  .dashboard-content .stat-value {
+    font-size: clamp(12px, 14cqi, 24px);
+    white-space: normal;
+    overflow-wrap: anywhere;
+    letter-spacing: -0.4px;
+  }
+}
+
+@media (max-width: 639px) {
+  .stat-value,
+  .analytics-stats .stat-value,
+  .dashboard-content .stat-value {
+    font-size: clamp(12px, 14cqi, 20px);
+  }
+  .donut-wrap {
+    container-type: inline-size;
+  }
+  .donut-center strong {
+    max-width: 65%;
+    font-size: clamp(12px, 10cqi, 16px);
+    text-align: center;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+  .category-legend b {
+    min-width: 0;
+    max-width: 45%;
+    font-size: 8px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
