@@ -109,6 +109,37 @@ test("month fields support Thai months, year navigation, keyboard, cancellation 
   page,
 }, info) => {
   await page.goto("/analytics/food");
+  await chooseAnalysisMonth(page, "เดือนฐานเปรียบเทียบ", "2026-10");
+  await chooseAnalysisMonth(page, "เดือนที่เปรียบเทียบ", "2026-11");
+  const comparisonFields = page.locator(
+    ".comparison-card .month-field-trigger",
+  );
+  const boxes = await comparisonFields.evaluateAll((buttons) =>
+    buttons.map((button) => {
+      const box = button.getBoundingClientRect();
+      const year = button
+        .querySelector(".month-field-year")!
+        .getBoundingClientRect();
+      const month = button
+        .querySelector(".month-field-month")!
+        .getBoundingClientRect();
+      return {
+        top: box.top,
+        height: box.height,
+        singleLine: Math.abs(year.top - month.top) < 1,
+      };
+    }),
+  );
+  expect(Math.abs(boxes[0].height - boxes[1].height)).toBeLessThan(1);
+  expect(Math.abs(boxes[0].top - boxes[1].top)).toBeLessThan(1);
+  expect(boxes.every((box) => box.singleLine)).toBe(true);
+  await expect(comparisonFields.nth(1)).toHaveAttribute(
+    "title",
+    "พฤศจิกายน 2569",
+  );
+  await page
+    .locator(".comparison-card")
+    .screenshot({ path: info.outputPath("comparison-month-alignment.png") });
   const from = page.getByRole("button", {
     name: "ช่วงวิเคราะห์จากเดือน",
     exact: true,

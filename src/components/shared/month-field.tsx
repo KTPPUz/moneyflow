@@ -41,6 +41,8 @@ export function MonthField({
   const [year, setYear] = useState(Number((value || today).slice(0, 4)));
   const selected = useRef<HTMLButtonElement>(null);
   const yearSelect = useRef<HTMLSelectElement>(null);
+  const displayValue = value ? monthLabel(value) : "เลือกเดือน";
+  const [displayMonth, displayYear] = displayValue.split(" ");
   function choose(month: string) {
     onChange(month);
     setOpen(false);
@@ -55,9 +57,19 @@ export function MonthField({
           setOpen(next);
         }}
       >
-        <Dialog.Trigger className="month-field-trigger" aria-label={ariaLabel}>
+        <Dialog.Trigger
+          className="month-field-trigger"
+          aria-label={ariaLabel}
+          aria-description={displayValue}
+          title={displayValue}
+        >
           <CalendarDays size={17} aria-hidden="true" />
-          <span>{value ? monthLabel(value) : "เลือกเดือน"}</span>
+          <span className="month-field-value">
+            <span className="month-field-month">
+              {value ? displayMonth : displayValue}
+            </span>
+            {value && <span className="month-field-year"> {displayYear}</span>}
+          </span>
           <ChevronDown size={15} aria-hidden="true" />
         </Dialog.Trigger>
         <Dialog.Portal>

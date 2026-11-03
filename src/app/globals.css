@@ -1973,7 +1973,7 @@ main {
 }
 .date-range {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 12px;
   margin: 23px 0 10px;
 }
@@ -2003,9 +2003,21 @@ main {
   text-align: left;
 }
 .month-field-trigger > span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   flex: 1;
   min-width: 0;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.month-field-month {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.month-field-year {
+  flex-shrink: 0;
 }
 .month-field-trigger > svg {
   flex-shrink: 0;
