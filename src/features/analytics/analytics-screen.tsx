@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ArrowUpRight, Coffee, Info, Utensils } from "lucide-react";
 import { useFinance } from "@/components/providers";
 import { PageHeading } from "@/components/shared/page-heading";
+import { MonthField } from "@/components/shared/month-field";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { Card } from "@/components/ui/card";
 import { CashFlowChart, FoodChart } from "@/components/dashboard/charts";
@@ -179,25 +180,19 @@ export function FoodAnalyticsScreen() {
               : "แสดงค่าอาหารรวมแต่ละเดือน · % คิดจากค่าอาหารเดือนนั้น ÷ รายรับรวมของเดือนนั้น"}
           </p>
           <div className="date-range">
-            <label>
-              จากเดือน
-              <input
-                type="month"
-                aria-label="ช่วงวิเคราะห์จากเดือน"
-                value={from}
-                onChange={(e) => setFrom(e.target.value)}
-              />
-            </label>
+            <MonthField
+              label="จากเดือน"
+              ariaLabel="ช่วงวิเคราะห์จากเดือน"
+              value={from}
+              onChange={setFrom}
+            />
             <span>—</span>
-            <label>
-              ถึงเดือน
-              <input
-                type="month"
-                aria-label="ช่วงวิเคราะห์ถึงเดือน"
-                value={to}
-                onChange={(e) => setTo(e.target.value)}
-              />
-            </label>
+            <MonthField
+              label="ถึงเดือน"
+              ariaLabel="ช่วงวิเคราะห์ถึงเดือน"
+              value={to}
+              onChange={setTo}
+            />
           </div>
           {valid ? (
             <FoodChart data={chartTimeline} mode={mode} period={period} />
@@ -257,25 +252,19 @@ export function FoodAnalyticsScreen() {
         </div>
         <div className="comparison-content">
           <div className="date-range">
-            <label>
-              เดือนฐาน
-              <input
-                type="month"
-                aria-label="เดือนฐานเปรียบเทียบ"
-                value={compareFrom}
-                onChange={(e) => setCompareFrom(e.target.value)}
-              />
-            </label>
+            <MonthField
+              label="เดือนฐาน"
+              ariaLabel="เดือนฐานเปรียบเทียบ"
+              value={compareFrom}
+              onChange={setCompareFrom}
+            />
             <span>→</span>
-            <label>
-              เดือนที่เปรียบเทียบ
-              <input
-                type="month"
-                aria-label="เดือนที่เปรียบเทียบ"
-                value={compareTo}
-                onChange={(e) => setCompareTo(e.target.value)}
-              />
-            </label>
+            <MonthField
+              label="เดือนที่เปรียบเทียบ"
+              ariaLabel="เดือนที่เปรียบเทียบ"
+              value={compareTo}
+              onChange={setCompareTo}
+            />
           </div>
           <div className="comparison-result">
             <div>

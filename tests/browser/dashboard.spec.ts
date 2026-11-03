@@ -67,13 +67,25 @@ async function addTransaction(
     .click();
   await expect(dialog).not.toBeVisible();
 }
+async function chooseAnalysisMonth(page: Page, field: string, value: string) {
+  await page.getByRole("button", { name: field, exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("combobox").selectOption(value.slice(0, 4));
+  const name = new Date(`${value}-15T12:00:00Z`).toLocaleDateString("th-TH", {
+    month: "long",
+    year: "numeric",
+    timeZone: "Asia/Bangkok",
+  });
+  await dialog.getByRole("button", { name, exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+}
 test("food chart switches daily and monthly independently of percentage units", async ({
   page,
 }) => {
   await page.goto("/analytics/food");
   const trend = page.locator(".analytics-trend");
-  await page.getByLabel("ช่วงวิเคราะห์จากเดือน").fill("2026-10");
-  await page.getByLabel("ช่วงวิเคราะห์ถึงเดือน").fill("2026-10");
+  await chooseAnalysisMonth(page, "ช่วงวิเคราะห์จากเดือน", "2026-10");
+  await chooseAnalysisMonth(page, "ช่วงวิเคราะห์ถึงเดือน", "2026-10");
   await trend.locator("summary").click();
   await expect(trend.locator("tbody tr")).toHaveCount(1);
   await trend.getByRole("button", { name: "รายวัน", exact: true }).click();
@@ -91,6 +103,74 @@ test("food chart switches daily and monthly independently of percentage units", 
   await expect(
     trend.getByRole("button", { name: "% รายรับ", exact: true }),
   ).toHaveClass("selected");
+});
+
+test("month fields support Thai months, year navigation, keyboard, cancellation and current month", async ({
+  page,
+}, info) => {
+  await page.goto("/analytics/food");
+  const from = page.getByRole("button", {
+    name: "ช่วงวิเคราะห์จากเดือน",
+    exact: true,
+  });
+  await from.click();
+  const dialog = page.getByRole("dialog");
+  await expect(
+    dialog
+      .getByRole("group", { name: "เดือนในปีที่เลือก" })
+      .getByRole("button"),
+  ).toHaveCount(12);
+  await expect(
+    dialog.getByRole("button", { name: "พฤศจิกายน 2568", exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("Enter");
+  await expect(dialog).not.toBeVisible();
+  await expect(from).toContainText("ธันวาคม 2568");
+  await expect(from).toBeFocused();
+  await from.click();
+  await dialog.getByRole("button", { name: "ปีถัดไป", exact: true }).click();
+  await expect(dialog.getByRole("combobox")).toHaveValue("2026");
+  await dialog.getByRole("button", { name: "ปีก่อนหน้า", exact: true }).click();
+  await expect(dialog.getByRole("combobox")).toHaveValue("2025");
+  await page.keyboard.press("Escape");
+  await expect(dialog).not.toBeVisible();
+  await expect(from).toContainText("ธันวาคม 2568");
+  await chooseAnalysisMonth(page, "เดือนฐานเปรียบเทียบ", "2026-09");
+  await expect(
+    page.getByRole("button", { name: "เดือนฐานเปรียบเทียบ", exact: true }),
+  ).toContainText("กันยายน 2569");
+  await page
+    .getByRole("button", { name: "เดือนที่เปรียบเทียบ", exact: true })
+    .click();
+  await dialog.getByRole("combobox").selectOption("2027");
+  await dialog.getByRole("button", { name: "เดือนนี้", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "เดือนที่เปรียบเทียบ", exact: true }),
+  ).toContainText("ตุลาคม 2569");
+  await from.click();
+  for (const colorScheme of ["light", "dark"] as const) {
+    await page.evaluate(
+      (theme) =>
+        document.documentElement.classList.toggle("dark", theme === "dark"),
+      colorScheme,
+    );
+    await page.screenshot({
+      path: info.outputPath(`month-picker-${colorScheme}.png`),
+      fullPage: true,
+    });
+    expect(
+      await dialog.evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        return (
+          box.left >= 0 &&
+          box.right <= innerWidth &&
+          box.top >= 0 &&
+          box.bottom <= innerHeight
+        );
+      }),
+    ).toBe(true);
+  }
 });
 
 test("dashboard and routes are responsive, figures reconcile and themes persist", async ({
