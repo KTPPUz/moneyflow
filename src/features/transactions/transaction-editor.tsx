@@ -26,7 +26,9 @@ export function TransactionEditor() {
         if (!open) setEditor(undefined);
       }}
       title={editor ? "แก้ไขรายการ" : "เพิ่มรายการใหม่"}
-      description="บันทึกเรื่องเงินของคุณ พร้อมแนบสลิปไว้กับรายการ"
+      description="กรอกข้อมูลหลักให้ครบ แล้วเพิ่มรายละเอียดหรือแนบสลิปได้ตามต้องการ"
+      wide
+      contentClassName="transaction-modal"
     >
       {editor !== undefined &&
         (data.accounts.length && data.categories.some((c) => !c.archivedAt) ? (
@@ -158,171 +160,201 @@ function TransactionForm({ initial }: { initial: Transaction | null }) {
     <form
       noValidate
       onSubmit={form.handleSubmit(submit)}
-      className="editor-form"
+      className="editor-form transaction-editor-form"
     >
-      <div className="type-toggle" role="group" aria-label="ประเภทรายการ">
-        {[
-          { value: "expense", label: "รายจ่าย", Icon: ArrowUpRight },
-          { value: "income", label: "รายรับ", Icon: ArrowDownLeft },
-        ].map(({ value, label, Icon }) => (
-          <button
-            type="button"
-            key={value}
-            className={kind === value ? `selected ${value}` : ""}
-            aria-pressed={kind === value}
-            onClick={() => {
-              form.setValue("kind", value as "expense" | "income");
-              form.setValue("categoryId", "");
+      <div className="transaction-form-body">
+        <section
+          className="transaction-form-main"
+          aria-labelledby="transaction-main-heading"
+        >
+          <div className="transaction-section-heading">
+            <h3 id="transaction-main-heading">ข้อมูลรายการ</h3>
+            <span>จำเป็น</span>
+          </div>
+          <div className="type-toggle" role="group" aria-label="ประเภทรายการ">
+            {[
+              { value: "expense", label: "รายจ่าย", Icon: ArrowUpRight },
+              { value: "income", label: "รายรับ", Icon: ArrowDownLeft },
+            ].map(({ value, label, Icon }) => (
+              <button
+                type="button"
+                key={value}
+                className={kind === value ? `selected ${value}` : ""}
+                aria-pressed={kind === value}
+                onClick={() => {
+                  form.setValue("kind", value as "expense" | "income");
+                  form.setValue("categoryId", "");
+                }}
+              >
+                <Icon size={17} />
+                {label}
+              </button>
+            ))}
+          </div>
+          <label className="amount-field">
+            จำนวนเงิน (บาท)
+            <div>
+              <span>฿</span>
+              <input
+                data-dialog-autofocus
+                inputMode="decimal"
+                placeholder="0.00"
+                autoComplete="off"
+                aria-invalid={!!error("amount")}
+                aria-describedby={error("amount") ? "error-amount" : undefined}
+                {...form.register("amount")}
+              />
+            </div>
+            {errorText("amount")}
+          </label>
+          <div className="form-grid transaction-required-grid">
+            <label>
+              หมวดหมู่ <span className="required">*</span>
+              <select
+                value={selectedParent?.id ?? ""}
+                aria-invalid={!!error("categoryId")}
+                onChange={(e) =>
+                  form.setValue("categoryId", e.target.value, {
+                    shouldValidate: true,
+                  })
+                }
+              >
+                <option value="">เลือกหมวดหมู่</option>
+                {roots.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                    {c.archivedAt ? " (เก็บถาวร)" : ""}
+                  </option>
+                ))}
+              </select>
+              {errorText("categoryId")}
+            </label>
+            <label>
+              หมวดหมู่ย่อย <span className="optional">(ถ้ามี)</span>
+              <select
+                value={
+                  data.categories.find((c) => c.id === categoryId)?.parentId
+                    ? categoryId
+                    : ""
+                }
+                onChange={(e) =>
+                  form.setValue(
+                    "categoryId",
+                    e.target.value || selectedParent?.id || "",
+                  )
+                }
+                disabled={!children.length}
+              >
+                <option value="">ไม่ระบุหมวดหมู่ย่อย</option>
+                {children.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              บัญชี <span className="required">*</span>
+              <select
+                {...form.register("accountId")}
+                aria-invalid={!!error("accountId")}
+              >
+                {data.accounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+              {errorText("accountId")}
+            </label>
+            <label>
+              วันที่ <span className="required">*</span>
+              <input
+                type="date"
+                {...form.register("date")}
+                aria-invalid={!!error("date")}
+              />
+              {errorText("date")}
+            </label>
+          </div>
+        </section>
+        <section
+          className="transaction-form-details"
+          aria-labelledby="transaction-details-heading"
+        >
+          <div className="transaction-section-heading">
+            <div>
+              <h3 id="transaction-details-heading">รายละเอียดเพิ่มเติม</h3>
+              <p>ช่วยให้ค้นหาและย้อนดูรายการนี้ได้ง่ายขึ้น</p>
+            </div>
+            <span>ไม่บังคับ</span>
+          </div>
+          <label>
+            รายละเอียด
+            <input
+              placeholder="เช่น ข้าวกลางวัน, เงินเดือน"
+              {...form.register("description")}
+              aria-invalid={!!error("description")}
+            />
+            {errorText("description")}
+          </label>
+          <label>
+            แท็ก <span className="optional">(คั่นด้วย ,)</span>
+            <input
+              placeholder="เช่น ประจำวัน, ทำงาน"
+              {...form.register("tags")}
+            />
+            {errorText("tags")}
+          </label>
+          <label>
+            บันทึกเพิ่มเติม
+            <textarea
+              rows={2}
+              placeholder="รายละเอียดที่อยากจำไว้..."
+              {...form.register("notes")}
+            />
+            {errorText("notes")}
+          </label>
+          <ReceiptAttachment
+            receiptId={receiptId}
+            disabled={form.formState.isSubmitting}
+            onBusyChange={setPreparingReceipt}
+            onFile={setReceiptFile}
+            onRemove={() => {
+              setReceiptId(undefined);
+              setReceiptFile(undefined);
             }}
-          >
-            <Icon size={17} />
-            {label}
-          </button>
-        ))}
+          />
+        </section>
       </div>
-      <label className="amount-field">
-        จำนวนเงิน (บาท)
+      <div className="transaction-form-footer">
         <div>
-          <span>฿</span>
-          <input
-            data-dialog-autofocus
-            inputMode="decimal"
-            placeholder="0.00"
-            autoComplete="off"
-            aria-invalid={!!error("amount")}
-            aria-describedby={error("amount") ? "error-amount" : undefined}
-            {...form.register("amount")}
-          />
+          {form.formState.errors.root && (
+            <p role="alert" className="inline-error">
+              {form.formState.errors.root.message}
+            </p>
+          )}
+          <div className="form-note">
+            <Wallet size={14} />
+            รายการและสลิปบันทึกไว้ในบัญชีของคุณ
+          </div>
         </div>
-        {errorText("amount")}
-      </label>
-      <div className="form-grid">
-        <label>
-          หมวดหมู่ <span className="required">*</span>
-          <select
-            value={selectedParent?.id ?? ""}
-            aria-invalid={!!error("categoryId")}
-            onChange={(e) =>
-              form.setValue("categoryId", e.target.value, {
-                shouldValidate: true,
-              })
-            }
+        <div className="form-actions">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setEditor(undefined)}
           >
-            <option value="">เลือกหมวดหมู่</option>
-            {roots.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-                {c.archivedAt ? " (เก็บถาวร)" : ""}
-              </option>
-            ))}
-          </select>
-          {errorText("categoryId")}
-        </label>
-        <label>
-          หมวดหมู่ย่อย <span className="optional">(ถ้ามี)</span>
-          <select
-            value={
-              data.categories.find((c) => c.id === categoryId)?.parentId
-                ? categoryId
-                : ""
-            }
-            onChange={(e) =>
-              form.setValue(
-                "categoryId",
-                e.target.value || selectedParent?.id || "",
-              )
-            }
-            disabled={!children.length}
+            ยกเลิก
+          </Button>
+          <Button
+            type="submit"
+            disabled={form.formState.isSubmitting || preparingReceipt}
           >
-            <option value="">ไม่ระบุหมวดหมู่ย่อย</option>
-            {children.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          บัญชี <span className="required">*</span>
-          <select
-            {...form.register("accountId")}
-            aria-invalid={!!error("accountId")}
-          >
-            {data.accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
-          {errorText("accountId")}
-        </label>
-        <label>
-          วันที่ <span className="required">*</span>
-          <input
-            type="date"
-            {...form.register("date")}
-            aria-invalid={!!error("date")}
-          />
-          {errorText("date")}
-        </label>
-      </div>
-      <label>
-        รายละเอียด <span className="optional">(ถ้ามี)</span>
-        <input
-          placeholder="เช่น ข้าวกลางวัน, เงินเดือน"
-          {...form.register("description")}
-          aria-invalid={!!error("description")}
-        />
-        {errorText("description")}
-      </label>
-      <label>
-        แท็ก <span className="optional">(คั่นด้วยเครื่องหมาย ,)</span>
-        <input placeholder="เช่น ประจำวัน, ทำงาน" {...form.register("tags")} />
-        {errorText("tags")}
-      </label>
-      <label>
-        บันทึกเพิ่มเติม <span className="optional">(ถ้ามี)</span>
-        <textarea
-          rows={2}
-          placeholder="รายละเอียดที่อยากจำไว้..."
-          {...form.register("notes")}
-        />
-        {errorText("notes")}
-      </label>
-      <ReceiptAttachment
-        receiptId={receiptId}
-        disabled={form.formState.isSubmitting}
-        onBusyChange={setPreparingReceipt}
-        onFile={setReceiptFile}
-        onRemove={() => {
-          setReceiptId(undefined);
-          setReceiptFile(undefined);
-        }}
-      />
-      {form.formState.errors.root && (
-        <p role="alert" className="inline-error">
-          {form.formState.errors.root.message}
-        </p>
-      )}
-      <div className="form-note">
-        <Wallet size={14} />
-        รายการและสลิปบันทึกไว้ในบัญชีของคุณ
-      </div>
-      <div className="form-actions">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => setEditor(undefined)}
-        >
-          ยกเลิก
-        </Button>
-        <Button
-          type="submit"
-          disabled={form.formState.isSubmitting || preparingReceipt}
-        >
-          <Check size={16} />
-          {form.formState.isSubmitting ? "กำลังบันทึก…" : "บันทึกรายการ"}
-        </Button>
+            <Check size={16} />
+            {form.formState.isSubmitting ? "กำลังบันทึก…" : "บันทึกรายการ"}
+          </Button>
+        </div>
       </div>
     </form>
   );

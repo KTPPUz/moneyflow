@@ -1350,6 +1350,124 @@ main {
   color: var(--muted-foreground);
   line-height: 1.8;
 }
+.detail-modal.transaction-modal {
+  width: min(820px, calc(100% - 40px));
+  max-width: 820px;
+  height: min(760px, calc(100dvh - 48px));
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.transaction-modal .modal-header {
+  padding: 24px 28px 20px;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+.transaction-editor-form {
+  min-height: 0;
+  flex: 1;
+  gap: 0;
+  overflow: hidden;
+}
+.transaction-form-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: 28px;
+  min-height: 0;
+  padding: 24px 28px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.transaction-form-main,
+.transaction-form-details {
+  display: flex;
+  flex-direction: column;
+  gap: 17px;
+  min-width: 0;
+}
+.transaction-form-details {
+  align-self: start;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--muted) 48%, var(--card));
+}
+.transaction-section-heading {
+  min-height: 36px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.transaction-section-heading h3 {
+  font-size: 14px;
+  font-weight: 600;
+}
+.transaction-section-heading p {
+  margin-top: 3px;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.6;
+}
+.transaction-section-heading > span {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 9px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.transaction-form-main > .transaction-section-heading > span {
+  color: var(--primary-text);
+  background: var(--mint-bg);
+}
+.transaction-required-grid {
+  grid-template-columns: 1fr;
+  gap: 15px;
+}
+.transaction-editor-form .transaction-form-details input,
+.transaction-editor-form .transaction-form-details textarea {
+  background: var(--card);
+}
+.transaction-form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex: none;
+  padding: 16px 28px;
+  border-top: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: 0 -8px 24px #172a4408;
+}
+.transaction-form-footer .inline-error {
+  margin: 0 0 4px;
+}
+.transaction-form-footer .form-actions {
+  flex: none;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+.transaction-form-footer .form-actions button:last-child {
+  min-width: 146px;
+}
+.transaction-form-details
+  .receipt-attachment
+  input[type="file"]::file-selector-button {
+  min-height: 34px;
+  margin-right: 10px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--foreground);
+  font: inherit;
+  cursor: pointer;
+}
 .toast {
   position: fixed;
   bottom: 25px;
@@ -3497,6 +3615,39 @@ tbody tr:last-child th {
     max-height: 94dvh;
     padding: 23px 20px max(24px, env(safe-area-inset-bottom));
     border-bottom: 0;
+  }
+  .detail-modal.transaction-modal {
+    width: 100%;
+    height: min(94dvh, 820px);
+    max-height: 94dvh;
+    padding: 0;
+  }
+  .transaction-modal::before {
+    margin: 14px auto 0;
+    flex: none;
+  }
+  .transaction-modal .modal-header {
+    padding: 14px 20px 16px;
+  }
+  .transaction-form-body {
+    grid-template-columns: 1fr;
+    gap: 22px;
+    padding: 20px;
+  }
+  .transaction-form-details {
+    padding: 16px;
+  }
+  .transaction-form-footer {
+    padding: 12px 20px max(14px, env(safe-area-inset-bottom));
+  }
+  .transaction-form-footer .form-note {
+    display: none;
+  }
+  .transaction-form-footer .form-actions {
+    width: 100%;
+  }
+  .transaction-form-footer .form-actions button:last-child {
+    min-width: 0;
   }
   .detail-modal::before {
     content: "";

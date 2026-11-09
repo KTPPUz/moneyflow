@@ -8,6 +8,7 @@ export function Modal({
   description,
   children,
   wide = false,
+  contentClassName,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -15,13 +16,14 @@ export function Modal({
   description: string;
   children: React.ReactNode;
   wide?: boolean;
+  contentClassName?: string;
 }) {
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="modal-backdrop" />
         <DialogPrimitive.Content
-          className={`detail-modal ${wide ? "modal-wide" : ""}`}
+          className={`detail-modal ${wide ? "modal-wide" : ""} ${contentClassName ?? ""}`}
           onOpenAutoFocus={(event) => {
             event.preventDefault();
             requestAnimationFrame(() =>
